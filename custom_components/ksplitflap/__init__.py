@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import voluptuous as vol
@@ -23,6 +24,9 @@ from .coordinator import KSplitFlapCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = ["select", "number", "switch", "text"]
+
+_CARD_URL  = "/ksplitflap/ksplitflap-card.js"
+_CARD_FILE = os.path.join(os.path.dirname(__file__), "www", "ksplitflap-card.js")
 
 # ------------------------------------------------------------------ #
 # Service schemas
@@ -71,6 +75,18 @@ def _get_coordinator(hass: HomeAssistant) -> KSplitFlapCoordinator:
 # ------------------------------------------------------------------ #
 # Setup
 # ------------------------------------------------------------------ #
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register the Lovelace card as a static frontend asset."""
+    try:
+        from homeassistant.components.http import StaticPathConfig
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(_CARD_URL, _CARD_FILE, cache_headers=False)]
+        )
+    except (ImportError, AttributeError):
+        hass.http.register_static_path(_CARD_URL, _CARD_FILE, cache_headers=False)
+    return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up kSplitFlap from a config entry."""

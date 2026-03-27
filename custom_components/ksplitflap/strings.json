@@ -57,12 +57,7 @@
       }
     },
     "text": {
-      "static_line_1": { "name": "Static Message Line 1" },
-      "static_line_2": { "name": "Static Message Line 2" },
-      "static_line_3": { "name": "Static Message Line 3" },
-      "static_line_4": { "name": "Static Message Line 4" },
-      "static_line_5": { "name": "Static Message Line 5" },
-      "static_line_6": { "name": "Static Message Line 6" }
+      "static_message": { "name": "Static Message" }
     }
   },
   "services": {
