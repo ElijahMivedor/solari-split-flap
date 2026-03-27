@@ -298,7 +298,7 @@
         flapBottom: hsl(hue, sat, 14),
         gapLine:   hsl(hue, sat, 6),
         text:      hsl(hue, Math.min(sat, 10), 94),
-        author:    hsl(45, 85, 60)
+        author:    sat === 0 ? hsl(45, 85, 60) : hsl(hue, Math.max(sat, 50), 65)
       };
     } else {
       return {
@@ -308,7 +308,7 @@
         flapBottom: hsl(hue, sat, 76),
         gapLine:   hsl(hue, sat, 70),
         text:      hsl(hue, sat, 10),
-        author:    hsl(45, 85, 42)
+        author:    sat === 0 ? hsl(45, 85, 42) : hsl(hue, Math.max(sat, 40), 35)
       };
     }
   }
@@ -335,7 +335,6 @@
     { name: 'fog',       hue: 0,   sat: 0,  mode: 'light' },
     { name: 'sage',      hue: 140, sat: 15, mode: 'light' },
     { name: 'lavender',  hue: 260, sat: 20, mode: 'light' },
-    { name: 'sand',      hue: 35,  sat: 20, mode: 'light' }
   ];
 
   var themeIndex = 0;
