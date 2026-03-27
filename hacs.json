@@ -1,0 +1,9 @@
+{
+  "name": "KineticBoard",
+  "domain": "kinetic_board",
+  "documentation": "https://github.com/elimivedore/solari-split-flap/blob/main/HOME_ASSISTANT.md",
+  "issue_tracker": "https://github.com/elimivedore/solari-split-flap/issues",
+  "codeowners": ["@elimivedore"],
+  "homeassistant": "2024.1.0",
+  "iot_class": "local_polling"
+}

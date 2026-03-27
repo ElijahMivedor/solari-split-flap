@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to KineticBoard",
+        "description": "Enter the network address and API key for your KineticBoard server.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "api_key": "API Key"
+        },
+        "data_description": {
+          "host": "Hostname or IP address of the machine running the board server (e.g. 192.168.1.42).",
+          "port": "TCP port the Express server is listening on (default 3000).",
+          "api_key": "The API_KEY value set in the board server's .env file."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the board server. Check the host, port, and that the server is running.",
+      "invalid_auth": "The API key was rejected. Verify the API_KEY in your server's .env file.",
+      "unknown": "An unexpected error occurred. Check the Home Assistant logs for details."
+    },
+    "abort": {
+      "already_configured": "This KineticBoard is already configured."
+    }
+  },
+  "entity": {
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "quotes": "Quotes",
+          "static": "Static",
+          "alternate": "Alternate",
+          "dashboard": "Dashboard"
+        }
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Volume"
+      },
+      "hold_quotes": {
+        "name": "Quotes Hold Duration"
+      },
+      "hold_alternate_quote": {
+        "name": "Alternate Quote Hold"
+      },
+      "hold_alternate_static": {
+        "name": "Alternate Static Hold"
+      }
+    },
+    "switch": {
+      "sound": {
+        "name": "Sound"
+      }
+    }
+  },
+  "services": {
+    "set_static_message": {
+      "name": "Set Static Message",
+      "description": "Display a static message on the KineticBoard.",
+      "fields": {
+        "lines": {
+          "name": "Lines",
+          "description": "List of text lines to display on the board."
+        }
+      }
+    },
+    "clear_static_message": {
+      "name": "Clear Static Message",
+      "description": "Remove the static message from the KineticBoard."
+    },
+    "add_quote": {
+      "name": "Add Quote",
+      "description": "Add a new quote to the KineticBoard quote library.",
+      "fields": {
+        "lines": {
+          "name": "Lines",
+          "description": "Text lines for the quote."
+        }
+      }
+    },
+    "delete_quote": {
+      "name": "Delete Quote",
+      "description": "Remove a quote from the KineticBoard library by ID.",
+      "fields": {
+        "quote_id": {
+          "name": "Quote ID",
+          "description": "The unique ID of the quote to delete."
+        }
+      }
+    },
+    "set_location": {
+      "name": "Set Location",
+      "description": "Set the location used for weather data in dashboard mode.",
+      "fields": {
+        "name": {
+          "name": "Display Name",
+          "description": "Location name shown on the board (e.g. AUSTIN, TX)."
+        },
+        "lat": {
+          "name": "Latitude",
+          "description": "Latitude coordinate."
+        },
+        "lon": {
+          "name": "Longitude",
+          "description": "Longitude coordinate."
+        }
+      }
+    }
+  }
+}

@@ -9,9 +9,9 @@
 
     :root {
       --sf-body-bg: #000000;
-      --sf-board-bg: #0a0a0a;
-      --sf-flap-top: #111111;
-      --sf-flap-bottom: #0d0d0d;
+      --sf-board-bg: #050505;
+      --sf-flap-top: #1a1a1a;
+      --sf-flap-bottom: #0e0e0e;
       --sf-gap-line: #000000;
       --sf-text: #ffffff;
       --sf-author: #00aef0;
@@ -33,7 +33,7 @@
       display: flex;
       flex-direction: column;
       gap: 3px;
-      padding: 1.5rem;
+      padding: 4.5rem;
       background: var(--sf-board-bg);
       width: 100%;
       height: 100%;
@@ -56,7 +56,7 @@
       width: 100%;
       height: 100%;
       font-family: Helvetica, Arial, sans-serif;
-      font-size: clamp(0.6rem, 3vw, 3rem);
+      font-size: min(5vw, 10vh);
       font-weight: 400;
       color: var(--sf-text);
       text-align: center;
@@ -206,7 +206,18 @@
   var ROWS = 8;
   var FLIP_MS = 150;       // single flap animation duration
   var CHAR_DELAY = 50;     // ms stagger between cells in cascade
-  var HOLD_MS = 5000;      // hold finished quote before next
+
+  // ──────────────────────────────────────────────
+  // Board state — synced from server every 5s.
+  // Defaults used until first poll resolves.
+  // ──────────────────────────────────────────────
+  var BOARD_MODE    = 'quotes';
+  var STATIC_MSG    = null;
+  var VOLUME        = 0.3;
+  var SOUND_ON      = true;
+  var HOLD_SETTINGS = { quotes: 8000, alternate: { quote: 8000, static: 5000 } };
+  var WEATHER_DATA  = null;
+  var LOCATION_NAME = '';
 
   // ──────────────────────────────────────────────
   // Quotes — each entry is an array of lines.
@@ -332,7 +343,10 @@
     ['THE MEDIUM IS',
      'THE MESSAGE.',
      '',
-     '@MARSHALL MCLUHAN']
+     '@MARSHALL MCLUHAN'],
+
+    ['WELCOME TO',
+     'KINETIC.']
   ];
 
   // ──────────────────────────────────────────────
@@ -379,7 +393,7 @@
   }
 
   function playClick() {
-    if (!soundEnabled || !audioCtx) return;
+    if (!soundEnabled || !audioCtx || !SOUND_ON) return;
     var duration = 0.012;
     var now = audioCtx.currentTime;
     var bufferSize = Math.ceil(audioCtx.sampleRate * duration);
@@ -395,7 +409,7 @@
     filter.frequency.value = 3000 + Math.random() * 1000;
     filter.Q.value = 1.5;
     var gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.08 + Math.random() * 0.04, now);
+    gain.gain.setValueAtTime(VOLUME + Math.random() * 0.06, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
     source.connect(filter);
     filter.connect(gain);
@@ -408,12 +422,21 @@
   document.addEventListener('keydown', function() { initAudio(); }, { once: true });
   document.addEventListener('mousemove', function() { initAudio(); }, { once: true });
 
+  // VBML character codes → drum tokens
+  var VBML_CODES = {};
+
   // ──────────────────────────────────────────────
-  // Drum — fixed character sequence (physically correct)
-  // The blank flap is position 0 on the drum.
-  // The drum only spins forward, never backward.
+  // Drum — fixed sequence. Colors and logo sit at
+  // the end; drum spins forward through them like
+  // any other character (option 1).
   // ──────────────────────────────────────────────
-  var drum = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;!?\'-';
+  var drum = [
+    ' ','A','B','C','D','E','F','G','H','I','J','K','L','M',
+    'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+    '0','1','2','3','4','5','6','7','8','9',
+    '.',',',':',';','!','?',"'",'-','/'
+  ];
+
   var drumIndex = {};
   for (var di = 0; di < drum.length; di++) drumIndex[drum[di]] = di;
 
@@ -428,35 +451,44 @@
   }
 
   // ──────────────────────────────────────────────
-  // Flip a single cell to a new character
+  // setFlapContent — renders a drum item onto a
+  // flap element: color tile, logo, or character.
   // ──────────────────────────────────────────────
-  function flipCell(index, newChar) {
+  function setFlapContent(flapEl, item) {
+    var charEl = flapEl.querySelector('.flap-char');
+    if (charEl) charEl.textContent = item || '';
+  }
+
+  // ──────────────────────────────────────────────
+  // Flip a single cell to a new drum item
+  // ──────────────────────────────────────────────
+  function flipCell(index, newItem) {
     var cell = cells[index];
     if (!cell) return;
 
-    var oldChar = currentChars[index];
-    if (oldChar === newChar) return;
+    var oldItem = currentChars[index];
+    if (oldItem === newItem) return;
 
-    var topChar = cell.querySelector('.flap-top .flap-char');
-    var bottomChar = cell.querySelector('.flap-bottom .flap-char');
-    var flip = cell.querySelector('.flap-flip');
-    var flipFront = cell.querySelector('.flap-flip-front .flap-char');
-    var flipBack = cell.querySelector('.flap-flip-back .flap-char');
+    var flapTop       = cell.querySelector('.flap-top');
+    var flapBottom    = cell.querySelector('.flap-bottom');
+    var flip          = cell.querySelector('.flap-flip');
+    var flapFlipFront = cell.querySelector('.flap-flip-front');
+    var flapFlipBack  = cell.querySelector('.flap-flip-back');
 
     flip.classList.remove('flipping');
 
-    flipFront.textContent = oldChar;
-    flipBack.textContent = newChar;
-    bottomChar.textContent = newChar;
+    setFlapContent(flapFlipFront, oldItem);
+    setFlapContent(flapFlipBack, newItem);
+    setFlapContent(flapBottom, newItem);
 
     void flip.offsetWidth;
     flip.classList.add('flipping');
     playClick();
 
     var tid = setTimeout(function() {
-      topChar.textContent = newChar;
+      setFlapContent(flapTop, newItem);
       flip.classList.remove('flipping');
-      currentChars[index] = newChar;
+      currentChars[index] = newItem;
     }, FLIP_MS);
     cellTimers[index].push(tid);
   }
@@ -534,13 +566,115 @@
   }
 
   // ──────────────────────────────────────────────
+  // VBML — parse template string into drum items.
+  // Supports plain text + {63} style codes + \n.
+  // ──────────────────────────────────────────────
+  function parseTemplate(tpl) {
+    var items = [];
+    var upper = tpl.toUpperCase();
+    var i = 0;
+    while (i < upper.length) {
+      if (upper[i] === '\n') {
+        items.push('\n');
+        i++;
+        continue;
+      }
+      if (upper[i] === '{') {
+        var end = upper.indexOf('}', i);
+        if (end !== -1) {
+          var code = parseInt(upper.substring(i + 1, end), 10);
+          items.push(VBML_CODES[code] || ' ');
+          i = end + 1;
+          continue;
+        }
+      }
+      var ch = upper[i];
+      items.push(drumIndex[ch] !== undefined ? ch : ' ');
+      i++;
+    }
+    return items;
+  }
+
+  // ──────────────────────────────────────────────
+  // VBML layout — place components onto the grid.
+  // Each component: { template, style: { height,
+  //   justify, align, absolutePosition: {x,y} } }
+  // justify: 'left'|'center'|'right'  (default left)
+  // align:   'top'|'center'|'bottom'  (default top, sequential)
+  // ──────────────────────────────────────────────
+  function layoutVBML(vbml) {
+    var grid = [];
+    for (var r = 0; r < ROWS; r++) {
+      var row = [];
+      for (var c = 0; c < COLS; c++) row.push(' ');
+      grid.push(row);
+    }
+
+    var nextRow = 0;
+
+    for (var ci = 0; ci < vbml.components.length; ci++) {
+      var comp = vbml.components[ci];
+      var style = comp.style || {};
+      var height = style.height || 1;
+      var justify = style.justify || 'left';
+
+      // Parse template into rows
+      var allItems = parseTemplate(comp.template || '');
+      var lines = [];
+      var current = [];
+      for (var ii = 0; ii < allItems.length; ii++) {
+        if (allItems[ii] === '\n') {
+          lines.push(current);
+          current = [];
+        } else {
+          current.push(allItems[ii]);
+          if (current.length === COLS) {
+            lines.push(current);
+            current = [];
+          }
+        }
+      }
+      if (current.length) lines.push(current);
+      // Pad to declared height
+      while (lines.length < height) lines.push([]);
+
+      // Determine starting row
+      var startRow;
+      if (style.absolutePosition !== undefined) {
+        startRow = style.absolutePosition.y || 0;
+      } else if (style.align === 'center') {
+        startRow = Math.floor((ROWS - height) / 2);
+      } else if (style.align === 'bottom') {
+        startRow = ROWS - height;
+      } else {
+        startRow = nextRow;
+      }
+      startRow = Math.max(0, Math.min(startRow, ROWS - 1));
+
+      // Place items into grid
+      for (var li = 0; li < height && startRow + li < ROWS; li++) {
+        var line = lines[li] || [];
+        var colStart = 0;
+        if (justify === 'center') colStart = Math.floor((COLS - line.length) / 2);
+        else if (justify === 'right') colStart = COLS - line.length;
+        colStart = Math.max(0, colStart);
+        for (var ki = 0; ki < line.length && colStart + ki < COLS; ki++) {
+          grid[startRow + li][colStart + ki] = line[ki];
+        }
+      }
+
+      nextRow = startRow + height;
+    }
+
+    return { grid: grid, authorRows: {} };
+  }
+
+  // ──────────────────────────────────────────────
   // Display — cascade drum cycles across the board
   // ──────────────────────────────────────────────
-  function displayQuote(result, callback) {
+  function displayQuote(result, holdMs, callback) {
     var grid = result.grid;
     var authorRows = result.authorRows;
-
-    // Apply author classes per-cell only after each cell's drum settles
     var maxDrumTime = 0;
 
     for (var r = 0; r < ROWS; r++) {
@@ -554,7 +688,6 @@
           if (delay + drumTime > maxDrumTime) maxDrumTime = delay + drumTime;
         }
 
-        // Schedule author class change per-cell after its drum finishes
         (function(cellIdx, row, cellDelay) {
           var tid = setTimeout(function() {
             if (authorRows[row]) {
@@ -568,31 +701,215 @@
       }
     }
 
-    setTimeout(callback, maxDrumTime + HOLD_MS);
+    setTimeout(callback, maxDrumTime + holdMs);
   }
 
   // ──────────────────────────────────────────────
-  // Shuffle and cycle
+  // Cycling — mode-aware, driven by server state
   // ──────────────────────────────────────────────
-  var shuffled = quotes.slice();
-  for (var si = shuffled.length - 1; si > 0; si--) {
-    var sj = Math.floor(Math.random() * (si + 1));
-    var tmp = shuffled[si];
-    shuffled[si] = shuffled[sj];
-    shuffled[sj] = tmp;
+  var activeQuotes   = quotes.slice(); // replaced by API on first poll
+  var shuffledDeck   = [];
+  var deckIndex      = 0;
+  var alternatephase = 'quote';        // tracks alternate mode turn
+
+  function nextFromDeck() {
+    if (shuffledDeck.length === 0 || deckIndex >= shuffledDeck.length) {
+      shuffledDeck = activeQuotes.slice();
+      for (var i = shuffledDeck.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = shuffledDeck[i]; shuffledDeck[i] = shuffledDeck[j]; shuffledDeck[j] = tmp;
+      }
+      deckIndex = 0;
+    }
+    return shuffledDeck[deckIndex++];
   }
 
-  var qIndex = 0;
+  // ──────────────────────────────────────────────
+  // Dashboard — live date, time, weather display
+  // ──────────────────────────────────────────────
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function getCSTNow() {
+    var now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  }
+
+  function getCSTDateString() {
+    var d = getCSTNow();
+    return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function getCSTTimeString() {
+    var d = getCSTNow();
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+
+  function centerString(grid, row, str) {
+    str = str.toUpperCase();
+    var start = Math.max(0, Math.floor((COLS - str.length) / 2));
+    for (var i = 0; i < str.length && start + i < COLS; i++) {
+      var ch = str[i];
+      grid[row][start + i] = drumIndex[ch] !== undefined ? ch : ' ';
+    }
+  }
+
+  function buildDashboardGrid() {
+    var grid = [];
+    for (var r = 0; r < ROWS; r++) {
+      var row = []; for (var c = 0; c < COLS; c++) row.push(' '); grid.push(row);
+    }
+
+    centerString(grid, 1, 'DATE  ' + getCSTDateString());  // row 1: "DATE  27/03/2026" (16 chars)
+    centerString(grid, 2, 'TIME  ' + getCSTTimeString());  // row 2: "TIME  14:32:47"   (14 chars)
+
+    if (WEATHER_DATA) {
+      if (LOCATION_NAME) centerString(grid, 4, LOCATION_NAME);
+      centerString(grid, 5, WEATHER_DATA.condition || '');
+      centerString(grid, 6, WEATHER_DATA.temperature + 'F  WIND ' + WEATHER_DATA.windSpeed + ' MPH');
+    }
+
+    return grid;
+  }
+
+  function renderDashboard() {
+    for (var i = 0; i < totalCells; i++) cells[i].classList.remove('author-cell');
+    var newGrid = buildDashboardGrid();
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var idx = r * COLS + c;
+        var target = newGrid[r][c];
+        if (currentChars[idx] !== target) {
+          (function(cellIdx, delay, ch) {
+            var tid = setTimeout(function() { flipCell(cellIdx, ch); }, delay);
+            cellTimers[cellIdx].push(tid);
+          })(idx, (r * COLS + c) * CHAR_DELAY, target);
+        }
+      }
+    }
+  }
+
+  function updateDashboardTime() {
+    var newGrid = buildDashboardGrid();
+    // Only update rows 1 (date) and 2 (time) — direct flip, no drum cycle
+    for (var r = 1; r <= 2; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var idx = r * COLS + c;
+        if (currentChars[idx] !== newGrid[r][c]) {
+          cancelCell(idx);
+          flipCell(idx, newGrid[r][c]);
+        }
+      }
+    }
+  }
+
+  function updateDashboardWeather() {
+    var newGrid = buildDashboardGrid();
+    for (var r = 4; r <= 6; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var idx = r * COLS + c;
+        if (currentChars[idx] !== newGrid[r][c]) {
+          cancelCell(idx);
+          flipCell(idx, newGrid[r][c]);
+        }
+      }
+    }
+  }
+
+  function startDashboard() {
+    renderDashboard();
+    dashboardInterval = setInterval(function() {
+      if (BOARD_MODE !== 'dashboard') {
+        stopDashboard();
+        cycle();
+        return;
+      }
+      updateDashboardTime();
+    }, 1000);
+  }
+
+  var dashboardInterval = null;
+
+  function stopDashboard() {
+    if (dashboardInterval) { clearInterval(dashboardInterval); dashboardInterval = null; }
+  }
+
   function cycle() {
-    var quote = shuffled[qIndex % shuffled.length];
-    var result = layoutQuote(quote);
-    displayQuote(result, function() {
-      qIndex++;
-      cycle();
-    });
+    stopDashboard();
+
+    if (BOARD_MODE === 'dashboard') {
+      startDashboard();
+      return;
+    }
+
+    var message, holdMs;
+
+    if (BOARD_MODE === 'static') {
+      message = STATIC_MSG || nextFromDeck();
+      holdMs  = 10000; // re-check state every 10s
+    } else if (BOARD_MODE === 'alternate') {
+      if (alternatephase === 'quote') {
+        message        = nextFromDeck();
+        holdMs         = HOLD_SETTINGS.alternate.quote;
+        alternatephase = 'static';
+      } else {
+        message        = STATIC_MSG || nextFromDeck();
+        holdMs         = HOLD_SETTINGS.alternate.static;
+        alternatephase = 'quote';
+      }
+    } else {
+      message = nextFromDeck();
+      holdMs  = HOLD_SETTINGS.quotes;
+    }
+
+    var lines  = Array.isArray(message) ? message : (message.lines || []);
+    var result = layoutQuote(lines);
+    displayQuote(result, holdMs, cycle);
   }
 
-  setTimeout(cycle, 800);
+  // ──────────────────────────────────────────────
+  // State polling — syncs with server every 5s
+  // ──────────────────────────────────────────────
+  function applyState(s) {
+    BOARD_MODE    = s.mode   || 'quotes';
+    SOUND_ON      = s.sound  !== false;
+    VOLUME        = typeof s.volume === 'number' ? s.volume : VOLUME;
+    HOLD_SETTINGS = s.holdMs || HOLD_SETTINGS;
+    STATIC_MSG    = s.staticMessage || null;
+    if (s.quotes && s.quotes.length) {
+      activeQuotes = s.quotes; // [{id, lines}, ...]
+      shuffledDeck = [];       // reset shuffle on next cycle
+    }
+    if (s.location && s.location.name) LOCATION_NAME = s.location.name;
+    if (s.weather) {
+      var isNew = !WEATHER_DATA || s.weather.updatedAt !== WEATHER_DATA.updatedAt;
+      WEATHER_DATA = s.weather;
+      if (isNew && BOARD_MODE === 'dashboard' && dashboardInterval) updateDashboardWeather();
+    }
+  }
+
+  function pollState() {
+    fetch('/api/state')
+      .then(function(r) { return r.json(); })
+      .then(applyState)
+      .catch(function() {});
+  }
+
+  setInterval(pollState, 5000);
+
+  // Start: poll first, then begin cycling
+  var cycleStarted = false;
+  function startCycle() {
+    if (cycleStarted) return;
+    cycleStarted = true;
+    cycle();
+  }
+
+  fetch('/api/state')
+    .then(function(r) { return r.json(); })
+    .then(function(s) { applyState(s); startCycle(); })
+    .catch(startCycle);
+
+  setTimeout(startCycle, 1500); // fallback if server unreachable
 })();
 </script>
 

@@ -20,8 +20,13 @@
     "README.md"
   ],
   "scripts": {
+    "start": "node server.js",
     "build": "node build.js",
     "prepublishOnly": "node build.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
   },
   "keywords": [
     "split-flap",

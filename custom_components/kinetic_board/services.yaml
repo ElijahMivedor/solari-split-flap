@@ -1,0 +1,90 @@
+set_static_message:
+  name: Set Static Message
+  description: >
+    Display a static message on the KineticBoard. The board will switch to
+    static mode if it is not already. Each element in the list is a line of text.
+  fields:
+    lines:
+      name: Lines
+      description: >
+        List of text lines to display. Each string maps to one row on the board.
+        Use an empty string "" for a blank line. Text is shown in uppercase.
+      required: true
+      example:
+        - "WELCOME HOME"
+        - ""
+        - "@KINETIC"
+      selector:
+        object:
+
+clear_static_message:
+  name: Clear Static Message
+  description: >
+    Remove the static message from the KineticBoard. The stored message is
+    deleted; the board will continue in whatever mode is currently active.
+
+add_quote:
+  name: Add Quote
+  description: >
+    Add a new quote to the KineticBoard quote library. The quote becomes
+    immediately eligible for display in quotes or alternate mode.
+  fields:
+    lines:
+      name: Lines
+      description: >
+        List of text lines for the quote. Use "@AUTHOR" convention on the
+        last line to display an author attribution in the accent colour.
+      required: true
+      example:
+        - "THE BEST WAY OUT"
+        - "IS ALWAYS THROUGH."
+        - ""
+        - "@ROBERT FROST"
+      selector:
+        object:
+
+delete_quote:
+  name: Delete Quote
+  description: >
+    Remove a quote from the KineticBoard library by its ID. The ID can be
+    found via the GET /api/quotes endpoint or from the board's state.
+  fields:
+    quote_id:
+      name: Quote ID
+      description: The unique ID of the quote to delete (e.g. "lf2k3abc1").
+      required: true
+      example: "lf2k3abc1"
+      selector:
+        text:
+
+set_location:
+  name: Set Location
+  description: Set the location used for weather data in dashboard mode.
+  fields:
+    name:
+      name: Display Name
+      description: Location name shown on the board (e.g. AUSTIN, TX).
+      required: true
+      example: "AUSTIN, TX"
+      selector:
+        text:
+    lat:
+      name: Latitude
+      description: Latitude coordinate.
+      required: true
+      example: 30.2672
+      selector:
+        number:
+          min: -90
+          max: 90
+          step: 0.0001
+    lon:
+      name: Longitude
+      description: Longitude coordinate.
+      required: true
+      example: -97.7431
+      selector:
+        number:
+          min: -180
+          max: 180
+          step: 0.0001
