@@ -72,7 +72,7 @@ const DEFAULT_STATE = {
   },
   staticMessage: null,
   quotes: SEED_QUOTES,
-  location: { name: 'AUSTIN, TX', lat: 30.2672, lon: -97.7431 },
+  location: { name: 'BIRMINGHAM, AL', lat: 33.5186, lon: -86.8104 },
   weather: null
 };
 

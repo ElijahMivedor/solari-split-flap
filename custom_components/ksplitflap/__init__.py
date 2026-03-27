@@ -22,7 +22,7 @@ from .coordinator import KSplitFlapCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[str] = ["select", "number", "switch"]
+PLATFORMS: list[str] = ["select", "number", "switch", "text"]
 
 # ------------------------------------------------------------------ #
 # Service schemas
