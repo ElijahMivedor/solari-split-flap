@@ -73,6 +73,7 @@
       height: calc(50% - 0.25px);
       background: var(--sf-flap-top);
       border-radius: 4px 4px 0 0;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px));
       overflow: hidden;
       z-index: 1;
       transition: background 0.4s ease;
@@ -98,6 +99,7 @@
       height: calc(50% - 0.25px);
       background: var(--sf-flap-bottom);
       border-radius: 0 0 4px 4px;
+      clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%, 0 3px);
       overflow: hidden;
       z-index: 1;
       transition: background 0.4s ease;
@@ -141,6 +143,7 @@
       height: 100%;
       background: var(--sf-flap-top);
       border-radius: 4px 4px 0 0;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px));
       backface-visibility: hidden;
       overflow: hidden;
       transition: background 0.4s ease;
@@ -166,6 +169,7 @@
       height: 100%;
       background: var(--sf-flap-bottom);
       border-radius: 0 0 4px 4px;
+      clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%, 0 3px);
       backface-visibility: hidden;
       transform: rotateX(180deg);
       overflow: hidden;
