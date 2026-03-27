@@ -16,7 +16,6 @@ from .coordinator import KSplitFlapCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 BOARD_COLS = 20
-BOARD_ROWS = 8
 
 
 def _word_wrap(text: str, width: int) -> list[str]:
@@ -46,11 +45,13 @@ def _center_h(line: str, width: int) -> str:
 
 
 def _build_lines(text: str) -> list[str]:
-    """Return board-ready lines: word-wrapped, horizontally and vertically centered."""
+    """Return board-ready lines: word-wrapped and horizontally centered.
+
+    Vertical centering is handled by the board's own _layoutQuote logic,
+    which places lines at startRow = floor((rows - len(lines)) / 2).
+    """
     wrapped = _word_wrap(text.upper(), BOARD_COLS)
-    centered = [_center_h(line, BOARD_COLS) for line in wrapped]
-    top_pad = max(0, (BOARD_ROWS - len(centered)) // 2)
-    return [""] * top_pad + centered
+    return [_center_h(line, BOARD_COLS) for line in wrapped]
 
 
 def _extract_text(lines: list[str]) -> str:
