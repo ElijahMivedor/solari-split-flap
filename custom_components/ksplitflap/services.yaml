@@ -1,7 +1,7 @@
 set_static_message:
   name: Set Static Message
   description: >
-    Display a static message on the KineticBoard. The board will switch to
+    Display a static message on the kSplitFlap. The board will switch to
     static mode if it is not already. Each element in the list is a line of text.
   fields:
     lines:
@@ -20,13 +20,13 @@ set_static_message:
 clear_static_message:
   name: Clear Static Message
   description: >
-    Remove the static message from the KineticBoard. The stored message is
+    Remove the static message from the kSplitFlap. The stored message is
     deleted; the board will continue in whatever mode is currently active.
 
 add_quote:
   name: Add Quote
   description: >
-    Add a new quote to the KineticBoard quote library. The quote becomes
+    Add a new quote to the kSplitFlap quote library. The quote becomes
     immediately eligible for display in quotes or alternate mode.
   fields:
     lines:
@@ -46,7 +46,7 @@ add_quote:
 delete_quote:
   name: Delete Quote
   description: >
-    Remove a quote from the KineticBoard library by its ID. The ID can be
+    Remove a quote from the kSplitFlap library by its ID. The ID can be
     found via the GET /api/quotes endpoint or from the board's state.
   fields:
     quote_id:

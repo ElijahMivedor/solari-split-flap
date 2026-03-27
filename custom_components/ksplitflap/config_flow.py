@@ -1,4 +1,4 @@
-"""Config flow for KineticBoard."""
+"""Config flow for kSplitFlap."""
 from __future__ import annotations
 
 import logging
@@ -30,8 +30,8 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class KineticBoardConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for KineticBoard."""
+class KSplitFlapConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for kSplitFlap."""
 
     VERSION = 1
 
@@ -88,7 +88,7 @@ class KineticBoardConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if not errors:
                 return self.async_create_entry(
-                    title=f"KineticBoard ({host}:{port})",
+                    title=f"kSplitFlap ({host}:{port})",
                     data={
                         CONF_HOST: host,
                         CONF_PORT: port,

@@ -1,4 +1,4 @@
-"""Select entity — display mode — for KineticBoard."""
+"""Select entity — display mode — for kSplitFlap."""
 from __future__ import annotations
 
 import logging
@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL, MODES
-from .coordinator import KineticBoardCoordinator
+from .coordinator import KSplitFlapCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,12 +22,12 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up KineticBoard select entities from a config entry."""
-    coordinator: KineticBoardCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([KineticBoardModeSelect(coordinator, entry)])
+    """Set up kSplitFlap select entities from a config entry."""
+    coordinator: KSplitFlapCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([KSplitFlapModeSelect(coordinator, entry)])
 
 
-class KineticBoardModeSelect(CoordinatorEntity[KineticBoardCoordinator], SelectEntity):
+class KSplitFlapModeSelect(CoordinatorEntity[KSplitFlapCoordinator], SelectEntity):
     """Select entity for the board display mode."""
 
     _attr_has_entity_name = True
@@ -35,7 +35,7 @@ class KineticBoardModeSelect(CoordinatorEntity[KineticBoardCoordinator], SelectE
     _attr_options = MODES
 
     def __init__(
-        self, coordinator: KineticBoardCoordinator, entry: ConfigEntry
+        self, coordinator: KSplitFlapCoordinator, entry: ConfigEntry
     ) -> None:
         """Initialise the entity."""
         super().__init__(coordinator)
@@ -43,7 +43,7 @@ class KineticBoardModeSelect(CoordinatorEntity[KineticBoardCoordinator], SelectE
         self._attr_unique_id = f"{entry.entry_id}_mode"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="KineticBoard",
+            name="kSplitFlap",
             manufacturer=MANUFACTURER,
             model=MODEL,
         )

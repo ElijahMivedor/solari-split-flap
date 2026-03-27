@@ -1,6 +1,6 @@
 {
-  "domain": "kinetic_board",
-  "name": "KineticBoard",
+  "domain": "ksplitflap",
+  "name": "kSplitFlap",
   "version": "1.0.0",
   "config_flow": true,
   "documentation": "https://github.com/elimivedore/solari-split-flap/blob/main/HOME_ASSISTANT.md",

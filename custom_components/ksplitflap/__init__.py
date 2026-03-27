@@ -1,4 +1,4 @@
-"""The KineticBoard integration."""
+"""The kSplitFlap integration."""
 from __future__ import annotations
 
 import logging
@@ -18,7 +18,7 @@ from .const import (
     SERVICE_SET_LOCATION,
     SERVICE_SET_STATIC,
 )
-from .coordinator import KineticBoardCoordinator
+from .coordinator import KSplitFlapCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,11 +59,11 @@ SET_LOCATION_SCHEMA = vol.Schema(
 # Helpers
 # ------------------------------------------------------------------ #
 
-def _get_coordinator(hass: HomeAssistant) -> KineticBoardCoordinator:
+def _get_coordinator(hass: HomeAssistant) -> KSplitFlapCoordinator:
     """Return the first registered coordinator (one board per HA install is the common case)."""
     entries = hass.data.get(DOMAIN, {})
     if not entries:
-        raise vol.Invalid("No KineticBoard integration is configured.")
+        raise vol.Invalid("No kSplitFlap integration is configured.")
     # Return coordinator for the first entry found
     return next(iter(entries.values()))
 
@@ -73,8 +73,8 @@ def _get_coordinator(hass: HomeAssistant) -> KineticBoardCoordinator:
 # ------------------------------------------------------------------ #
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up KineticBoard from a config entry."""
-    coordinator = KineticBoardCoordinator(hass, entry)
+    """Set up kSplitFlap from a config entry."""
+    coordinator = KSplitFlapCoordinator(hass, entry)
 
     # Initial data fetch — raises ConfigEntryNotReady on failure
     await coordinator.async_config_entry_first_refresh()

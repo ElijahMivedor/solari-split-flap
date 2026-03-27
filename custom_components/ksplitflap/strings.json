@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect to KineticBoard",
-        "description": "Enter the network address and API key for your KineticBoard server.",
+        "title": "Connect to kSplitFlap",
+        "description": "Enter the network address and API key for your kSplitFlap server.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -22,7 +22,7 @@
       "unknown": "An unexpected error occurred. Check the Home Assistant logs for details."
     },
     "abort": {
-      "already_configured": "This KineticBoard is already configured."
+      "already_configured": "This kSplitFlap is already configured."
     }
   },
   "entity": {
@@ -60,7 +60,7 @@
   "services": {
     "set_static_message": {
       "name": "Set Static Message",
-      "description": "Display a static message on the KineticBoard.",
+      "description": "Display a static message on the kSplitFlap.",
       "fields": {
         "lines": {
           "name": "Lines",
@@ -70,11 +70,11 @@
     },
     "clear_static_message": {
       "name": "Clear Static Message",
-      "description": "Remove the static message from the KineticBoard."
+      "description": "Remove the static message from the kSplitFlap."
     },
     "add_quote": {
       "name": "Add Quote",
-      "description": "Add a new quote to the KineticBoard quote library.",
+      "description": "Add a new quote to the kSplitFlap quote library.",
       "fields": {
         "lines": {
           "name": "Lines",
@@ -84,7 +84,7 @@
     },
     "delete_quote": {
       "name": "Delete Quote",
-      "description": "Remove a quote from the KineticBoard library by ID.",
+      "description": "Remove a quote from the kSplitFlap library by ID.",
       "fields": {
         "quote_id": {
           "name": "Quote ID",

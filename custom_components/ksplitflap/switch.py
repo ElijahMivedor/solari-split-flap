@@ -1,4 +1,4 @@
-"""Switch entity — sound — for KineticBoard."""
+"""Switch entity — sound — for kSplitFlap."""
 from __future__ import annotations
 
 import logging
@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
-from .coordinator import KineticBoardCoordinator
+from .coordinator import KSplitFlapCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,13 +21,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up KineticBoard switch entities from a config entry."""
-    coordinator: KineticBoardCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([KineticBoardSoundSwitch(coordinator, entry)])
+    """Set up kSplitFlap switch entities from a config entry."""
+    coordinator: KSplitFlapCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([KSplitFlapSoundSwitch(coordinator, entry)])
 
 
-class KineticBoardSoundSwitch(
-    CoordinatorEntity[KineticBoardCoordinator], SwitchEntity
+class KSplitFlapSoundSwitch(
+    CoordinatorEntity[KSplitFlapCoordinator], SwitchEntity
 ):
     """Switch entity to enable/disable board sound."""
 
@@ -35,7 +35,7 @@ class KineticBoardSoundSwitch(
     _attr_translation_key = "sound"
 
     def __init__(
-        self, coordinator: KineticBoardCoordinator, entry: ConfigEntry
+        self, coordinator: KSplitFlapCoordinator, entry: ConfigEntry
     ) -> None:
         """Initialise the entity."""
         super().__init__(coordinator)
@@ -43,7 +43,7 @@ class KineticBoardSoundSwitch(
         self._attr_unique_id = f"{entry.entry_id}_sound"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="KineticBoard",
+            name="kSplitFlap",
             manufacturer=MANUFACTURER,
             model=MODEL,
         )

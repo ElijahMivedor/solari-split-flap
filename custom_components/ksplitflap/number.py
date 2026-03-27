@@ -1,4 +1,4 @@
-"""Number entities for KineticBoard."""
+"""Number entities for kSplitFlap."""
 from __future__ import annotations
 
 import logging
@@ -19,19 +19,19 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
-from .coordinator import KineticBoardCoordinator
+from .coordinator import KSplitFlapCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, kw_only=True)
-class KineticBoardNumberDescription(NumberEntityDescription):
-    """Describes a KineticBoard number entity."""
+class KSplitFlapNumberDescription(NumberEntityDescription):
+    """Describes a kSplitFlap number entity."""
 
     # Extracts the current value (in display units) from coordinator data
     value_fn: Callable[[dict[str, Any]], float | None]
     # Sends the updated value (in display units) to the board
-    set_fn: Callable[[KineticBoardCoordinator, float], Any]
+    set_fn: Callable[[KSplitFlapCoordinator, float], Any]
 
 
 def _hold_quotes_value(data: dict[str, Any]) -> float | None:
@@ -55,8 +55,8 @@ def _hold_alt_static_value(data: dict[str, Any]) -> float | None:
         return None
 
 
-ENTITY_DESCRIPTIONS: tuple[KineticBoardNumberDescription, ...] = (
-    KineticBoardNumberDescription(
+ENTITY_DESCRIPTIONS: tuple[KSplitFlapNumberDescription, ...] = (
+    KSplitFlapNumberDescription(
         key="volume",
         translation_key="volume",
         native_min_value=0.0,
@@ -67,7 +67,7 @@ ENTITY_DESCRIPTIONS: tuple[KineticBoardNumberDescription, ...] = (
         value_fn=lambda data: data.get("volume"),
         set_fn=lambda coord, v: coord.async_set_volume(v),
     ),
-    KineticBoardNumberDescription(
+    KSplitFlapNumberDescription(
         key="hold_quotes",
         translation_key="hold_quotes",
         native_min_value=1,
@@ -78,7 +78,7 @@ ENTITY_DESCRIPTIONS: tuple[KineticBoardNumberDescription, ...] = (
         value_fn=_hold_quotes_value,
         set_fn=lambda coord, v: coord.async_set_hold({"quotes": int(v * 1000)}),
     ),
-    KineticBoardNumberDescription(
+    KSplitFlapNumberDescription(
         key="hold_alternate_quote",
         translation_key="hold_alternate_quote",
         native_min_value=1,
@@ -91,7 +91,7 @@ ENTITY_DESCRIPTIONS: tuple[KineticBoardNumberDescription, ...] = (
             {"alternate": {"quote": int(v * 1000)}}
         ),
     ),
-    KineticBoardNumberDescription(
+    KSplitFlapNumberDescription(
         key="hold_alternate_static",
         translation_key="hold_alternate_static",
         native_min_value=1,
@@ -112,25 +112,25 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up KineticBoard number entities from a config entry."""
-    coordinator: KineticBoardCoordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up kSplitFlap number entities from a config entry."""
+    coordinator: KSplitFlapCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        KineticBoardNumber(coordinator, entry, description)
+        KSplitFlapNumber(coordinator, entry, description)
         for description in ENTITY_DESCRIPTIONS
     )
 
 
-class KineticBoardNumber(CoordinatorEntity[KineticBoardCoordinator], NumberEntity):
-    """A number entity for a KineticBoard setting."""
+class KSplitFlapNumber(CoordinatorEntity[KSplitFlapCoordinator], NumberEntity):
+    """A number entity for a kSplitFlap setting."""
 
     _attr_has_entity_name = True
-    entity_description: KineticBoardNumberDescription
+    entity_description: KSplitFlapNumberDescription
 
     def __init__(
         self,
-        coordinator: KineticBoardCoordinator,
+        coordinator: KSplitFlapCoordinator,
         entry: ConfigEntry,
-        description: KineticBoardNumberDescription,
+        description: KSplitFlapNumberDescription,
     ) -> None:
         """Initialise the entity."""
         super().__init__(coordinator)
@@ -138,7 +138,7 @@ class KineticBoardNumber(CoordinatorEntity[KineticBoardCoordinator], NumberEntit
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="KineticBoard",
+            name="kSplitFlap",
             manufacturer=MANUFACTURER,
             model=MODEL,
         )

@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for KineticBoard."""
+"""DataUpdateCoordinator for kSplitFlap."""
 from __future__ import annotations
 
 import logging
@@ -28,7 +28,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class KineticBoardCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class KSplitFlapCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator that polls GET /api/state and exposes mutation helpers."""
 
     config_entry: ConfigEntry
@@ -110,7 +110,7 @@ class KineticBoardCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except ConfigEntryAuthFailed:
             raise
         except aiohttp.ClientError as err:
-            raise UpdateFailed(f"Error communicating with KineticBoard: {err}") from err
+            raise UpdateFailed(f"Error communicating with kSplitFlap: {err}") from err
 
     # ------------------------------------------------------------------ #
     # Mutation helpers (each mutates then refreshes coordinator data)

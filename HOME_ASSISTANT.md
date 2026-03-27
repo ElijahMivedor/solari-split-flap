@@ -1,6 +1,6 @@
-# KineticBoard — Home Assistant Integration
+# kSplitFlap — Home Assistant Integration
 
-Control your Solari split-flap display directly from Home Assistant. The **KineticBoard** integration polls your board's local Express server every 30 seconds and exposes entities for every controllable setting. Four custom services let you push messages and manage the quote library from automations, scripts, and dashboards.
+Control your Solari split-flap display directly from Home Assistant. The **kSplitFlap** integration polls your board's local Express server every 30 seconds and exposes entities for every controllable setting. Four custom services let you push messages and manage the quote library from automations, scripts, and dashboards.
 
 ---
 
@@ -47,7 +47,7 @@ HACS (Home Assistant Community Store) is the recommended installation method.
    https://github.com/elimivedore/solari-split-flap
    ```
    Category: **Integration**. Click **Add**.
-4. Search for **KineticBoard** in the HACS integrations list and click **Download**.
+4. Search for **kSplitFlap** in the HACS integrations list and click **Download**.
 5. Restart Home Assistant.
 6. Proceed to [Configuration](#configuration-config-flow).
 
@@ -63,14 +63,14 @@ If you prefer not to use HACS:
    ```
 2. Copy the integration folder into your HA config directory:
    ```bash
-   cp -r solari-split-flap/custom_components/kinetic_board \
-         /config/custom_components/kinetic_board
+   cp -r solari-split-flap/custom_components/ksplitflap \
+         /config/custom_components/ksplitflap
    ```
    Your directory structure should look like:
    ```
    /config/
    └── custom_components/
-       └── kinetic_board/
+       └── ksplitflap/
            ├── __init__.py
            ├── manifest.json
            ├── const.py
@@ -94,7 +94,7 @@ If you prefer not to use HACS:
 After installation and restart, add the integration through the UI:
 
 1. Go to **Settings → Devices & Services → Add Integration**.
-2. Search for **KineticBoard** and click it.
+2. Search for **kSplitFlap** and click it.
 3. Fill in the form:
 
    | Field   | Description                                                         | Example          |
@@ -106,15 +106,15 @@ After installation and restart, add the integration through the UI:
 4. Click **Submit**. Home Assistant will:
    - Verify connectivity by calling `GET /api/state`
    - Verify the API key by calling `POST /api/settings` with an empty body and checking for a non-401 response
-5. If validation succeeds, a **KineticBoard** device is created with six entities.
+5. If validation succeeds, a **kSplitFlap** device is created with six entities.
 
-To reconfigure or remove the integration, go to **Settings → Devices & Services → KineticBoard → ⋮**.
+To reconfigure or remove the integration, go to **Settings → Devices & Services → kSplitFlap → ⋮**.
 
 ---
 
 ## Entities
 
-All entities are grouped under a single **KineticBoard** device (manufacturer: Kinetic, model: Split-Flap Display).
+All entities are grouped under a single **kSplitFlap** device (manufacturer: Kinetic, model: Split-Flap Display).
 
 ### Mode (Select)
 
@@ -204,11 +204,11 @@ In **alternate** mode: how long the static message is held before switching back
 
 ## Services
 
-All services live under the `kinetic_board` domain and can be called from automations, scripts, the Developer Tools, or the HA dashboard.
+All services live under the `ksplitflap` domain and can be called from automations, scripts, the Developer Tools, or the HA dashboard.
 
 ---
 
-### `kinetic_board.set_static_message`
+### `ksplitflap.set_static_message`
 
 Display a static message on the board.
 
@@ -219,7 +219,7 @@ Display a static message on the board.
 Text is stored as-is; the board UI renders it in uppercase. Use an `@` prefix on a line for author attribution styling (e.g. `@ALAN KAY`).
 
 ```yaml
-service: kinetic_board.set_static_message
+service: ksplitflap.set_static_message
 data:
   lines:
     - "WELCOME HOME"
@@ -229,17 +229,17 @@ data:
 
 ---
 
-### `kinetic_board.clear_static_message`
+### `ksplitflap.clear_static_message`
 
 Remove the stored static message. The board retains its current mode.
 
 ```yaml
-service: kinetic_board.clear_static_message
+service: ksplitflap.clear_static_message
 ```
 
 ---
 
-### `kinetic_board.add_quote`
+### `ksplitflap.add_quote`
 
 Add a new quote to the board's quote library. It is immediately available for display.
 
@@ -248,7 +248,7 @@ Add a new quote to the board's quote library. It is immediately available for di
 | lines  | list of strings| Yes      | Lines of the quote, author on last. |
 
 ```yaml
-service: kinetic_board.add_quote
+service: ksplitflap.add_quote
 data:
   lines:
     - "THE BEST WAY OUT"
@@ -259,7 +259,7 @@ data:
 
 ---
 
-### `kinetic_board.delete_quote`
+### `ksplitflap.delete_quote`
 
 Remove a quote from the library by its ID.
 
@@ -270,14 +270,14 @@ Remove a quote from the library by its ID.
 To find quote IDs, call `GET http://<board-host>:3000/api/quotes` — each quote object contains an `id` field.
 
 ```yaml
-service: kinetic_board.delete_quote
+service: ksplitflap.delete_quote
 data:
   quote_id: "lf2k3abc1"
 ```
 
 ---
 
-### `kinetic_board.set_location`
+### `ksplitflap.set_location`
 
 Set the geographic location used for weather data in dashboard mode. Triggers an immediate weather refresh on the server.
 
@@ -288,7 +288,7 @@ Set the geographic location used for weather data in dashboard mode. Triggers an
 | lon   | float  | Yes      | Longitude coordinate (-180 to 180).            |
 
 ```yaml
-service: kinetic_board.set_location
+service: ksplitflap.set_location
 data:
   name: "NEW YORK, NY"
   lat: 40.7128
@@ -311,7 +311,7 @@ Weather data is fetched from [Open-Meteo](https://open-meteo.com/) — a free, n
 
 Time updates every second using direct single-flip animation (not the full drum cycle), so only cells that have changed characters are animated. Weather rows update automatically whenever the server fetches new data.
 
-The default location is Austin, TX. Change it with the `kinetic_board.set_location` service or by posting to `POST /api/settings` with a `location` object.
+The default location is Austin, TX. Change it with the `ksplitflap.set_location` service or by posting to `POST /api/settings` with a `location` object.
 
 ### Switching to dashboard mode
 
@@ -326,7 +326,7 @@ data:
 ### Automation: Switch to dashboard at night
 
 ```yaml
-alias: KineticBoard Dashboard at Night
+alias: kSplitFlap Dashboard at Night
 trigger:
   - platform: time
     at: "20:00:00"
@@ -339,7 +339,7 @@ action:
 
 ---
 
-alias: KineticBoard Quotes in Morning
+alias: kSplitFlap Quotes in Morning
 trigger:
   - platform: time
     at: "08:00:00"
@@ -354,7 +354,7 @@ action:
 ### Setting the location
 
 ```yaml
-service: kinetic_board.set_location
+service: ksplitflap.set_location
 data:
   name: "CHICAGO, IL"
   lat: 41.8781
@@ -370,7 +370,7 @@ data:
 Shows a personal greeting when someone arrives home, then switches back to quotes after 60 seconds.
 
 ```yaml
-alias: KineticBoard Welcome Home
+alias: kSplitFlap Welcome Home
 trigger:
   - platform: state
     entity_id: person.jane
@@ -381,7 +381,7 @@ action:
       entity_id: select.kineticboard_mode
     data:
       option: static
-  - service: kinetic_board.set_static_message
+  - service: ksplitflap.set_static_message
     data:
       lines:
         - "WELCOME HOME"
@@ -404,7 +404,7 @@ action:
 Switches to quotes mode and sets maximum volume every morning at 8:00 AM.
 
 ```yaml
-alias: KineticBoard Morning
+alias: kSplitFlap Morning
 trigger:
   - platform: time
     at: "08:00:00"
@@ -431,7 +431,7 @@ action:
 Silences the flip sound between 22:00 and 07:00.
 
 ```yaml
-alias: KineticBoard Mute at Night
+alias: kSplitFlap Mute at Night
 trigger:
   - platform: time
     at: "22:00:00"
@@ -442,7 +442,7 @@ action:
 
 ---
 
-alias: KineticBoard Unmute in Morning
+alias: kSplitFlap Unmute in Morning
 trigger:
   - platform: time
     at: "07:00:00"
@@ -459,7 +459,7 @@ action:
 Displays the current outside temperature as a static message when it is unusually hot or cold.
 
 ```yaml
-alias: KineticBoard Weather Alert
+alias: kSplitFlap Weather Alert
 trigger:
   - platform: numeric_state
     entity_id: weather.home
@@ -467,7 +467,7 @@ trigger:
     above: 35
 condition: []
 action:
-  - service: kinetic_board.set_static_message
+  - service: ksplitflap.set_static_message
     data:
       lines:
         - "IT IS HOT OUT THERE"
@@ -489,7 +489,7 @@ action:
 Adds a templated quote to the board library every Monday morning.
 
 ```yaml
-alias: KineticBoard Monday Motivation
+alias: kSplitFlap Monday Motivation
 trigger:
   - platform: time
     at: "07:30:00"
@@ -498,7 +498,7 @@ condition:
     weekday:
       - mon
 action:
-  - service: kinetic_board.add_quote
+  - service: ksplitflap.add_quote
     data:
       lines:
         - "MAKE THIS WEEK"
@@ -595,14 +595,14 @@ data:
 
 ### Entities show "Unavailable"
 
-- The coordinator failed to fetch state. Check **Settings → System → Logs** for `kinetic_board` errors.
+- The coordinator failed to fetch state. Check **Settings → System → Logs** for `ksplitflap` errors.
 - Verify the server is still running and reachable.
 - If the server was restarted on a different port, remove and re-add the integration.
 
 ### State is stale / not updating
 
 - The integration polls every 30 seconds. State changes made outside HA will appear within 30 seconds.
-- To force an immediate refresh, call the `homeassistant.update_entity` service on any KineticBoard entity.
+- To force an immediate refresh, call the `homeassistant.update_entity` service on any kSplitFlap entity.
 
 ### Services do not appear in Developer Tools
 
@@ -612,7 +612,7 @@ data:
 
 ### Multiple boards
 
-If you have more than one board, add the integration multiple times (each with a different host/port). Services (`kinetic_board.set_static_message`, etc.) will target the **first** configured board. For precise multi-board control, use the `select`, `number`, and `switch` entities directly — or call the board's HTTP API via `rest_command` with distinct URLs.
+If you have more than one board, add the integration multiple times (each with a different host/port). Services (`ksplitflap.set_static_message`, etc.) will target the **first** configured board. For precise multi-board control, use the `select`, `number`, and `switch` entities directly — or call the board's HTTP API via `rest_command` with distinct URLs.
 
 ### Resetting to defaults
 

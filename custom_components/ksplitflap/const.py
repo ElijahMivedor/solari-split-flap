@@ -1,6 +1,6 @@
-"""Constants for the KineticBoard integration."""
+"""Constants for the kSplitFlap integration."""
 
-DOMAIN = "kinetic_board"
+DOMAIN = "ksplitflap"
 MANUFACTURER = "Kinetic"
 MODEL = "Split-Flap Display"
 
