@@ -8,61 +8,58 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      /* Theme: dark (default) — hue 0, sat 0%, dark mode */
-      --sf-body-bg: #111;
-      --sf-board-bg: #1a1a1a;
-      --sf-flap-top: #2a2a2a;
-      --sf-flap-bottom: #222;
-      --sf-gap-line: #111;
-      --sf-text: #f0f0f0;
-      --sf-author: #f5c542;
+      --sf-body-bg: #000000;
+      --sf-board-bg: #0a0a0a;
+      --sf-flap-top: #111111;
+      --sf-flap-bottom: #0d0d0d;
+      --sf-gap-line: #000000;
+      --sf-text: #ffffff;
+      --sf-author: #00aef0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
     }
 
     body {
-      min-height: 100vh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
       background: var(--sf-body-bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      transition: background 0.4s ease;
+      font-family: Helvetica, Arial, sans-serif;
     }
 
     .split-flap-board {
       display: flex;
       flex-direction: column;
       gap: 3px;
-      padding: 2rem;
+      padding: 1.5rem;
       background: var(--sf-board-bg);
-      border-radius: 12px;
-      width: fit-content;
-      margin: 2rem auto;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      transition: background 0.4s ease;
     }
 
     .split-flap-row {
       display: flex;
       gap: 3px;
+      flex: 1;
     }
 
     .split-flap-cell {
-      width: 28px;
-      height: 40px;
-      perspective: 200px;
+      flex: 1;
+      perspective: 15vw;
     }
 
     .flap-display {
       position: relative;
       width: 100%;
       height: 100%;
-      font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
-      font-size: 1.1rem;
-      font-weight: bold;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: clamp(0.6rem, 3vw, 3rem);
+      font-weight: 400;
       color: var(--sf-text);
       text-align: center;
-      transition: color 0.4s ease;
     }
 
     .flap-top {
@@ -72,11 +69,9 @@
       width: 100%;
       height: calc(50% - 0.25px);
       background: var(--sf-flap-top);
-      border-radius: 4px 4px 0 0;
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px));
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.5px), calc(100% - 1.5px) 100%, 1.5px 100%, 0 calc(100% - 1.5px));
       overflow: hidden;
       z-index: 1;
-      transition: background 0.4s ease;
     }
 
     .flap-top .flap-char {
@@ -98,11 +93,9 @@
       width: 100%;
       height: calc(50% - 0.25px);
       background: var(--sf-flap-bottom);
-      border-radius: 0 0 4px 4px;
-      clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%, 0 3px);
+      clip-path: polygon(1.5px 0, calc(100% - 1.5px) 0, 100% 1.5px, 100% 100%, 0 100%, 0 1.5px);
       overflow: hidden;
       z-index: 1;
-      transition: background 0.4s ease;
     }
 
     .flap-bottom .flap-char {
@@ -142,11 +135,9 @@
       width: 100%;
       height: 100%;
       background: var(--sf-flap-top);
-      border-radius: 4px 4px 0 0;
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px));
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.5px), calc(100% - 1.5px) 100%, 1.5px 100%, 0 calc(100% - 1.5px));
       backface-visibility: hidden;
       overflow: hidden;
-      transition: background 0.4s ease;
     }
 
     .flap-flip-front .flap-char {
@@ -168,12 +159,10 @@
       width: 100%;
       height: 100%;
       background: var(--sf-flap-bottom);
-      border-radius: 0 0 4px 4px;
-      clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%, 0 3px);
+      clip-path: polygon(1.5px 0, calc(100% - 1.5px) 0, 100% 1.5px, 100% 100%, 0 100%, 0 1.5px);
       backface-visibility: hidden;
       transform: rotateX(180deg);
       overflow: hidden;
-      transition: background 0.4s ease;
     }
 
     .flap-flip-back .flap-char {
@@ -197,150 +186,19 @@
       color: var(--sf-author);
     }
 
-    /* Theme switcher hint */
-    .theme-hint {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      font-size: 0.7rem;
-      color: var(--sf-text);
-      opacity: 0.3;
-      font-family: "SF Mono", "Fira Code", monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      pointer-events: none;
-      transition: color 0.4s ease, opacity 0.4s ease;
-    }
-    .theme-hint .key {
-      display: inline-block;
-      border: 1px solid;
-      border-radius: 3px;
-      padding: 0.1em 0.35em;
-      margin: 0 0.15em;
-      opacity: 0.6;
-    }
-
     @keyframes flapDown {
       0% { transform: rotateX(0deg); }
       100% { transform: rotateX(-180deg); }
     }
 
-    @media (max-width: 768px) {
-      .split-flap-cell {
-        width: 18px;
-        height: 28px;
-      }
-      .flap-display {
-        font-size: 0.75rem;
-      }
-      .split-flap-board {
-        gap: 2px;
-        padding: 1rem;
-      }
-      .split-flap-row {
-        gap: 2px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .split-flap-cell {
-        width: 14px;
-        height: 22px;
-      }
-      .flap-display {
-        font-size: 0.6rem;
-      }
-    }
   </style>
 </head>
 <body>
 
 <div class="split-flap-board" id="board"></div>
-<div class="theme-hint"><span class="key">T</span> cycle theme</div>
 
 <script>
 (function() {
-  // ──────────────────────────────────────────────
-  // Theme engine
-  // ──────────────────────────────────────────────
-  //
-  // Physics: light comes from above.
-  //   - Top flap: lighter (catches light)
-  //   - Bottom flap: darker (in shadow)
-  //   - Board bg: darkest (recessed behind flaps)
-  //   - Gap line: matches board bg (shadow between flaps)
-  //   - Body bg: slightly darker/lighter than board for depth
-  //
-  // For dark themes: low lightness, text is light
-  // For light themes: high lightness, text is dark
-  //
-  // generateTheme(hue, saturation, mode)
-  //   hue: 0-360
-  //   saturation: 0-100
-  //   mode: 'dark' or 'light'
-
-  function hsl(h, s, l) {
-    return 'hsl(' + h + ', ' + s + '%, ' + l + '%)';
-  }
-
-  function generateTheme(hue, sat, mode) {
-    if (mode === 'dark') {
-      return {
-        bodyBg:    hsl(hue, sat, 6),
-        boardBg:   hsl(hue, sat, 10),
-        flapTop:   hsl(hue, sat, 18),
-        flapBottom: hsl(hue, sat, 14),
-        gapLine:   hsl(hue, sat, 6),
-        text:      hsl(hue, Math.min(sat, 10), 94),
-        author:    sat === 0 ? hsl(45, 85, 60) : hsl(hue, 85, 72)
-      };
-    } else {
-      return {
-        bodyBg:    hsl(hue, sat, 95),
-        boardBg:   hsl(hue, sat, 88),
-        flapTop:   hsl(hue, sat, 82),
-        flapBottom: hsl(hue, sat, 76),
-        gapLine:   hsl(hue, sat, 70),
-        text:      hsl(hue, sat, 10),
-        author:    sat === 0 ? hsl(45, 85, 42) : hsl(hue, Math.max(sat, 40), 35)
-      };
-    }
-  }
-
-  function applyTheme(theme) {
-    var root = document.documentElement;
-    root.style.setProperty('--sf-body-bg', theme.bodyBg);
-    root.style.setProperty('--sf-board-bg', theme.boardBg);
-    root.style.setProperty('--sf-flap-top', theme.flapTop);
-    root.style.setProperty('--sf-flap-bottom', theme.flapBottom);
-    root.style.setProperty('--sf-gap-line', theme.gapLine);
-    root.style.setProperty('--sf-text', theme.text);
-    root.style.setProperty('--sf-author', theme.author);
-  }
-
-  // Preset themes
-  var themes = [
-    { name: 'classic',   hue: 0,   sat: 0,  mode: 'dark' },
-    { name: 'mint',      hue: 155, sat: 30, mode: 'dark' },
-    { name: 'ocean',     hue: 210, sat: 35, mode: 'dark' },
-    { name: 'purple',    hue: 270, sat: 30, mode: 'dark' },
-    { name: 'amber',     hue: 35,  sat: 40, mode: 'dark' },
-    { name: 'rose',      hue: 345, sat: 25, mode: 'dark' },
-    { name: 'fog',       hue: 0,   sat: 0,  mode: 'light' },
-    { name: 'sage',      hue: 140, sat: 15, mode: 'light' },
-    { name: 'lavender',  hue: 260, sat: 20, mode: 'light' },
-  ];
-
-  var themeIndex = 0;
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 't' || e.key === 'T') {
-      themeIndex = (themeIndex + 1) % themes.length;
-      var t = themes[themeIndex];
-      applyTheme(generateTheme(t.hue, t.sat, t.mode));
-    }
-  });
-
   // ──────────────────────────────────────────────
   // Configuration
   // ──────────────────────────────────────────────
@@ -548,6 +406,7 @@
 
   document.addEventListener('click', function() { initAudio(); }, { once: true });
   document.addEventListener('keydown', function() { initAudio(); }, { once: true });
+  document.addEventListener('mousemove', function() { initAudio(); }, { once: true });
 
   // ──────────────────────────────────────────────
   // Drum — fixed character sequence (physically correct)
