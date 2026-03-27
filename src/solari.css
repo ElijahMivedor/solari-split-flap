@@ -1,0 +1,213 @@
+/* solari-split-flap — CSS */
+/* https://github.com/nicedoc/solari-split-flap */
+
+:root {
+  /* Theme: dark (default) — hue 0, sat 0%, dark mode */
+  --sf-body-bg: #111;
+  --sf-board-bg: #1a1a1a;
+  --sf-flap-top: #2a2a2a;
+  --sf-flap-bottom: #222;
+  --sf-gap-line: #111;
+  --sf-text: #f0f0f0;
+  --sf-author: #f5c542;
+}
+
+.split-flap-board {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2rem;
+  background: var(--sf-board-bg);
+  border-radius: 12px;
+  width: fit-content;
+  margin: 2rem auto;
+  overflow: hidden;
+  transition: background 0.4s ease;
+}
+
+.split-flap-row {
+  display: flex;
+  gap: 3px;
+}
+
+.split-flap-cell {
+  width: 28px;
+  height: 40px;
+  perspective: 200px;
+}
+
+.flap-display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--sf-text);
+  text-align: center;
+  transition: color 0.4s ease;
+}
+
+.flap-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(50% - 0.25px);
+  background: var(--sf-flap-top);
+  border-radius: 4px 4px 0 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px));
+  overflow: hidden;
+  z-index: 1;
+  transition: background 0.4s ease;
+}
+
+.flap-top .flap-char {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.flap-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: calc(50% - 0.25px);
+  background: var(--sf-flap-bottom);
+  border-radius: 0 0 4px 4px;
+  clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%, 0 3px);
+  overflow: hidden;
+  z-index: 1;
+  transition: background 0.4s ease;
+}
+
+.flap-bottom .flap-char {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.flap-flip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  transform-origin: bottom center;
+  transform-style: preserve-3d;
+  z-index: 10;
+  pointer-events: none;
+  display: none;
+}
+
+.flap-flip.flipping {
+  display: block;
+  animation: flapDown 0.15s ease-in forwards;
+}
+
+.flap-flip-front {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--sf-flap-top);
+  border-radius: 4px 4px 0 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px));
+  backface-visibility: hidden;
+  overflow: hidden;
+  transition: background 0.4s ease;
+}
+
+.flap-flip-front .flap-char {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.flap-flip-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--sf-flap-bottom);
+  border-radius: 0 0 4px 4px;
+  clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%, 0 3px);
+  backface-visibility: hidden;
+  transform: rotateX(180deg);
+  overflow: hidden;
+  transition: background 0.4s ease;
+}
+
+.flap-flip-back .flap-char {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Author name color */
+.split-flap-cell.author-cell .flap-top .flap-char,
+.split-flap-cell.author-cell .flap-bottom .flap-char,
+.split-flap-cell.author-cell .flap-flip-front .flap-char,
+.split-flap-cell.author-cell .flap-flip-back .flap-char {
+  color: var(--sf-author);
+}
+
+@keyframes flapDown {
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(-180deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .split-flap-cell {
+    width: 18px;
+    height: 28px;
+  }
+  .flap-display {
+    font-size: 0.75rem;
+  }
+  .split-flap-board {
+    gap: 2px;
+    padding: 1rem;
+  }
+  .split-flap-row {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .split-flap-cell {
+    width: 14px;
+    height: 22px;
+  }
+  .flap-display {
+    font-size: 0.6rem;
+  }
+}

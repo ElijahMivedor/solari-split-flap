@@ -18,7 +18,67 @@ A physically accurate split-flap (Solari board) display built with vanilla HTML,
 - **Responsive**: scales down on tablet and mobile
 - **Zero dependencies**: single HTML file, no build step
 
+## Install
+
+```bash
+npm install solari-split-flap
+```
+
 ## Usage
+
+### Vanilla JS
+
+```javascript
+import { SolariBoard } from 'solari-split-flap';
+
+const board = new SolariBoard(document.getElementById('board'), {
+  cols: 20,
+  rows: 8,
+  theme: 'ocean',
+  quotes: [
+    ['HELLO WORLD', '', '@SOLARI'],
+    ['STAY HUNGRY.', 'STAY FOOLISH.', '', '@STEWART BRAND'],
+  ],
+});
+board.start();
+```
+
+### React
+
+```jsx
+import { Solari } from 'solari-split-flap/react';
+
+function App() {
+  return (
+    <Solari
+      cols={20}
+      rows={8}
+      theme="mint"
+      quotes={[
+        ['HELLO WORLD', '', '@SOLARI'],
+        ['STAY HUNGRY.', 'STAY FOOLISH.', '', '@STEWART BRAND'],
+      ]}
+    />
+  );
+}
+```
+
+Props: `cols`, `rows`, `theme`, `quotes`, `sound`, `flipMs`, `charDelay`, `holdMs`, `autoStart`, `className`, `style`, `onReady` (receives the board instance).
+
+### CDN
+
+```html
+<div id="board"></div>
+<script src="https://unpkg.com/solari-split-flap"></script>
+<script>
+  const board = new SolariBoard(document.getElementById('board'), {
+    theme: 'purple'
+  });
+  board.start();
+</script>
+```
+
+### Static HTML
 
 Open `index.html` in a browser. That's it.
 

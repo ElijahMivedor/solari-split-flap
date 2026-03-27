@@ -1,0 +1,16 @@
+# Demo files
+index.html
+themes.html
+
+# Screenshots
+*.png
+
+# Build script (not needed by consumers)
+build.js
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo

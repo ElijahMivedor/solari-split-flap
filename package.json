@@ -1,0 +1,54 @@
+{
+  "name": "solari-split-flap",
+  "version": "1.0.0",
+  "description": "A physically accurate split-flap (Solari board) display built with vanilla HTML, CSS, and JavaScript. No dependencies.",
+  "main": "dist/solari.js",
+  "module": "dist/solari.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/solari.esm.js",
+      "require": "./dist/solari.js",
+      "default": "./dist/solari.js"
+    },
+    "./react": "./src/react.jsx",
+    "./css": "./src/solari.css"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "prepublishOnly": "node build.js"
+  },
+  "keywords": [
+    "split-flap",
+    "solari",
+    "display",
+    "flip-board",
+    "departure-board",
+    "animation",
+    "vanilla-js",
+    "no-dependencies"
+  ],
+  "author": "Hardik Pandya",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hardikpandya/solari-split-flap"
+  },
+  "homepage": "https://hvpandya.com/solari",
+  "bugs": {
+    "url": "https://github.com/hardikpandya/solari-split-flap/issues"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}
