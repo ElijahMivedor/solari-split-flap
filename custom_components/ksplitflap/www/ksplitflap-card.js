@@ -1,19 +1,25 @@
 /* Lovelace card for the kSplitFlap integration. Renders a single ha-card
    that bundles every common control for the board:
-     - a live split-flap-styled message preview
      - mode picker (Inspirational Quotes / Custom Message Only / Both)
      - sound on/off
-     - volume slider with mute/unmute glyph
-     - static message textarea (debounced write-back to HA)
+     - volume slider
+     - custom message textarea (debounced write-back to HA)
    The card autodiscovers the matching ksplitflap entities (select.*, number.*_volume,
-   switch.*_sound, text.*_static_message). All three can also be pinned via
+   switch.*_sound, text.*_static_message). All four can also be pinned via
    ksplitflap-card config keys.
    Notes:
    05/21/2026 - Initial rebuild. Mode labels updated to the new
                 human-friendly strings, dashboard option removed, sound toggle
                 folded into the volume row, and a mini split-flap preview
                 added at the top so the card visually echoes the board itself.
-                Allman braces throughout. */
+                Allman braces throughout.
+   05/21/2026 - Visual rewrite to match native HA tile-card styling. Dropped
+                the bespoke preview strip, gradient eyebrow, underline-
+                segmented mode picker, custom circular sound button, and
+                restyled slider thumb in favour of ha-slider, ha-icon-button,
+                and ha-icon, with all colours/spacing pulled from HA's CSS
+                custom properties so the card inherits whatever theme the
+                user has set. */
 
 class KSplitFlapCard extends HTMLElement
 {
@@ -74,6 +80,8 @@ class KSplitFlapCard extends HTMLElement
 
     //── DOM template ─────────────────────────────────────────────────────────
     //Built once on the first hass set; later updates only mutate values.
+    //All visual styling comes from HA's CSS custom properties — no
+    //hardcoded colours, no gradients, no theme-specific assumptions.
     _build()
     {
         this.shadowRoot.innerHTML = `
@@ -81,335 +89,244 @@ class KSplitFlapCard extends HTMLElement
                 :host
                 {
                     display: block;
-                    font-family: var(--primary-font-family, sans-serif);
-                    --sf-accent: var(--primary-color);
-                    --sf-flap-bg: #0f1115;
-                    --sf-flap-fg: #f5f5f5;
-                    --sf-flap-author: #ffc54a;
-                    --sf-flap-shadow: 0 6px 18px rgba(0,0,0,0.25);
                 }
 
                 ha-card
                 {
-                    padding: 0;
-                    overflow: hidden;
+                    padding: 12px 16px 16px;
                 }
 
-                /* ── Preview strip — looks like a tiny split-flap board ── */
-                .preview
-                {
-                    position: relative;
-                    background: var(--sf-flap-bg);
-                    padding: 16px 18px 14px;
-                    color: var(--sf-flap-fg);
-                    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.05);
-                }
-
-                .preview::before
-                {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 60%);
-                    pointer-events: none;
-                }
-
-                .preview-eyebrow
+                /* ── Header row ── */
+                .header
                 {
                     display: flex;
                     align-items: center;
-                    gap: 6px;
-                    font-size: 0.65rem;
-                    font-weight: 600;
-                    letter-spacing: 0.16em;
-                    color: var(--sf-accent);
-                    text-transform: uppercase;
-                    margin-bottom: 6px;
+                    justify-content: space-between;
+                    gap: 12px;
+                    padding: 4px 0 12px;
+                    border-bottom: 1px solid var(--divider-color);
+                    margin-bottom: 12px;
                 }
 
-                .preview-eyebrow .dot
+                .header-left
                 {
-                    width: 6px;
-                    height: 6px;
-                    border-radius: 50%;
-                    background: var(--sf-accent);
-                    box-shadow: 0 0 6px var(--sf-accent);
-                }
-
-                .preview-text
-                {
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-weight: 700;
-                    font-size: 1.1rem;
-                    letter-spacing: 0.04em;
-                    line-height: 1.3;
-                    white-space: pre-wrap;
-                    word-break: break-word;
-                    min-height: 2.6em;
-                    color: var(--sf-flap-fg);
-                }
-
-                .preview-text .author
-                {
-                    color: var(--sf-flap-author);
-                }
-
-                .preview-text.placeholder
-                {
-                    color: rgba(255,255,255,0.35);
-                    font-weight: 500;
-                    font-style: italic;
-                }
-
-                /* ── Body — controls ── */
-                .body
-                {
-                    padding: 16px 18px 18px;
                     display: flex;
-                    flex-direction: column;
-                    gap: 16px;
+                    align-items: center;
+                    gap: 12px;
+                    min-width: 0;
                 }
 
-                .row label
+                .header-icon
                 {
-                    display: block;
-                    font-size: 0.72rem;
-                    font-weight: 600;
+                    color: var(--state-icon-color, var(--primary-text-color));
+                    flex-shrink: 0;
+                }
+
+                .header-text
+                {
+                    min-width: 0;
+                }
+
+                .name
+                {
+                    font-weight: 500;
+                    font-size: 1rem;
+                    color: var(--primary-text-color);
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .state
+                {
+                    font-size: 0.8rem;
                     color: var(--secondary-text-color);
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                /* ── Section ── */
+                .section + .section
+                {
+                    margin-top: 16px;
+                }
+
+                .label
+                {
+                    font-size: 0.75rem;
+                    color: var(--secondary-text-color);
                     margin-bottom: 8px;
                 }
 
-                /* ── Mode segmented control ── */
-                .mode-grid
+                .label-row
                 {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 6px;
-                    background: var(--divider-color);
-                    padding: 4px;
-                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
                 }
 
-                .mode-btn
+                /* ── Mode segmented buttons ── */
+                .mode-segments
                 {
+                    display: flex;
+                    gap: 4px;
+                    background: var(--secondary-background-color);
+                    border-radius: 12px;
+                    padding: 3px;
+                }
+
+                .seg-btn
+                {
+                    flex: 1;
                     appearance: none;
                     border: none;
                     background: transparent;
                     color: var(--secondary-text-color);
-                    padding: 10px 6px;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                    line-height: 1.15;
-                    border-radius: 8px;
+                    padding: 8px 6px;
+                    font-size: 0.82rem;
+                    font-family: inherit;
+                    line-height: 1.2;
+                    border-radius: 10px;
                     cursor: pointer;
-                    text-align: center;
-                    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+                    transition: background-color 0.15s ease, color 0.15s ease;
                 }
 
-                .mode-btn:hover
+                .seg-btn:hover
                 {
                     color: var(--primary-text-color);
-                    background: var(--card-background-color);
                 }
 
-                .mode-btn.active
+                .seg-btn.active
                 {
-                    background: var(--card-background-color);
-                    color: var(--primary-text-color);
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+                    background: var(--primary-color);
+                    color: var(--text-primary-color, #fff);
                 }
 
-                .mode-btn.active::after
-                {
-                    content: '';
-                    display: block;
-                    width: 18px;
-                    height: 2px;
-                    background: var(--sf-accent);
-                    border-radius: 1px;
-                    margin: 4px auto 0;
-                }
-
-                /* ── Volume row with sound toggle ── */
+                /* ── Volume + sound row ── */
                 .volume-row
                 {
                     display: flex;
                     align-items: center;
-                    gap: 10px;
+                    gap: 4px;
                 }
 
-                .sound-toggle
+                .sound-btn
                 {
                     flex-shrink: 0;
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    border: 1px solid var(--divider-color);
-                    background: var(--card-background-color);
                     color: var(--secondary-text-color);
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+                    --mdc-icon-button-size: 36px;
                 }
 
-                .sound-toggle:hover
+                .sound-btn.muted
                 {
-                    color: var(--primary-text-color);
-                    border-color: var(--primary-text-color);
-                }
-
-                .sound-toggle.off
-                {
-                    background: transparent;
                     color: var(--error-color, #db4437);
-                    border-color: var(--error-color, #db4437);
                 }
 
-                input[type=range]
+                ha-slider
                 {
                     flex: 1;
-                    -webkit-appearance: none;
-                    appearance: none;
-                    height: 4px;
-                    border-radius: 2px;
-                    background: var(--divider-color);
-                    outline: none;
-                    cursor: pointer;
-                }
-
-                input[type=range]::-webkit-slider-thumb
-                {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 50%;
-                    background: var(--sf-accent);
-                    border: 2px solid var(--card-background-color);
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
-                    cursor: pointer;
-                }
-
-                input[type=range]::-moz-range-thumb
-                {
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 50%;
-                    background: var(--sf-accent);
-                    border: 2px solid var(--card-background-color);
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
-                    cursor: pointer;
                 }
 
                 .volume-value
                 {
                     flex-shrink: 0;
-                    min-width: 36px;
+                    min-width: 38px;
                     text-align: right;
                     font-size: 0.85rem;
-                    font-variant-numeric: tabular-nums;
                     color: var(--secondary-text-color);
+                    font-variant-numeric: tabular-nums;
                 }
 
-                /* ── Textarea ── */
-                textarea
+                /* ── Message ── */
+                .message-input
                 {
                     width: 100%;
                     box-sizing: border-box;
                     background: var(--secondary-background-color);
                     color: var(--primary-text-color);
                     border: 1px solid var(--divider-color);
-                    border-radius: 10px;
+                    border-radius: 8px;
                     padding: 10px 12px;
-                    font-family: var(--code-font-family, monospace);
+                    font-family: inherit;
                     font-size: 0.95rem;
+                    line-height: 1.4;
                     resize: vertical;
-                    min-height: 64px;
+                    min-height: 60px;
                     outline: none;
-                    transition: border-color 0.18s ease;
+                    transition: border-color 0.15s ease;
                 }
 
-                textarea:focus
+                .message-input:focus
                 {
-                    border-color: var(--sf-accent);
+                    border-color: var(--primary-color);
                 }
 
-                textarea::placeholder
+                .message-input::placeholder
                 {
                     color: var(--disabled-text-color);
-                    opacity: 1;
-                }
-
-                .hint
-                {
-                    font-size: 0.72rem;
-                    color: var(--disabled-text-color);
-                    margin-top: 6px;
                 }
 
                 .clear-btn
                 {
-                    margin-top: 6px;
+                    appearance: none;
                     background: none;
                     border: none;
-                    color: var(--secondary-text-color);
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.06em;
+                    color: var(--primary-color);
+                    font-family: inherit;
+                    font-size: 0.78rem;
                     cursor: pointer;
-                    padding: 0;
+                    padding: 4px 6px;
+                    border-radius: 4px;
                 }
 
                 .clear-btn:hover
                 {
-                    color: var(--primary-text-color);
+                    background: var(--secondary-background-color);
                 }
             </style>
 
             <ha-card>
-                <!-- Mini split-flap preview shows the current mode + active message -->
-                <div class="preview">
-                    <div class="preview-eyebrow">
-                        <span class="dot"></span>
-                        <span id="mode-label">—</span>
+                <div class="header">
+                    <div class="header-left">
+                        <ha-icon class="header-icon" icon="mdi:tray-full"></ha-icon>
+                        <div class="header-text">
+                            <div class="name">Split-Flap Display</div>
+                            <div class="state" id="mode-label">—</div>
+                        </div>
                     </div>
-                    <div class="preview-text placeholder" id="preview-text">No active message</div>
                 </div>
 
-                <div class="body">
-                    <div class="row">
-                        <label>Mode</label>
-                        <div class="mode-grid">
-                            <button class="mode-btn" data-mode="quotes">Inspirational<br>Quotes</button>
-                            <button class="mode-btn" data-mode="static">Custom Message<br>Only</button>
-                            <button class="mode-btn" data-mode="alternate">Both</button>
-                        </div>
+                <div class="section">
+                    <div class="label">Mode</div>
+                    <div class="mode-segments">
+                        <button class="seg-btn" data-mode="quotes">Inspirational Quotes</button>
+                        <button class="seg-btn" data-mode="static">Custom Message Only</button>
+                        <button class="seg-btn" data-mode="alternate">Both</button>
                     </div>
+                </div>
 
-                    <div class="row">
-                        <label>Volume</label>
-                        <div class="volume-row">
-                            <button class="sound-toggle" id="sound-btn" title="Toggle sound">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path id="sound-icon" d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 7.97v8.05a4.5 4.5 0 0 0 2.5-4.02zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/>
-                                </svg>
-                            </button>
-                            <input type="range" id="vol" min="0" max="100" step="1" />
-                            <span class="volume-value" id="vol-label">--</span>
-                        </div>
+                <div class="section">
+                    <div class="label">Volume</div>
+                    <div class="volume-row">
+                        <ha-icon-button class="sound-btn" id="sound-btn" title="Toggle sound">
+                            <ha-icon id="sound-icon" icon="mdi:volume-high"></ha-icon>
+                        </ha-icon-button>
+                        <ha-slider id="vol" min="0" max="100" step="1" pin></ha-slider>
+                        <span class="volume-value" id="vol-label">--</span>
                     </div>
+                </div>
 
-                    <div class="row">
-                        <label>Custom Message</label>
-                        <textarea id="msg" placeholder="Type a message — words wrap automatically"></textarea>
-                        <div class="hint">Wraps to 20 chars per line and centers on the board.</div>
-                        <button class="clear-btn" id="clear-btn">Clear message</button>
+                <div class="section">
+                    <div class="label-row">
+                        <div class="label" style="margin: 0">Custom Message</div>
+                        <button class="clear-btn" id="clear-btn">Clear</button>
                     </div>
+                    <textarea
+                        class="message-input"
+                        id="msg"
+                        placeholder="Type a message — wraps to 20 chars per line"></textarea>
                 </div>
             </ha-card>
         `;
@@ -419,7 +336,6 @@ class KSplitFlapCard extends HTMLElement
         msg.addEventListener('input', () =>
         {
             this._localMessage = msg.value;
-            this._updatePreview();
             clearTimeout(this._messageDebounce);
             this._messageDebounce = setTimeout(() => this._setMessage(msg.value), 800);
         });
@@ -434,24 +350,35 @@ class KSplitFlapCard extends HTMLElement
         {
             msg.value = '';
             this._localMessage = '';
-            this._updatePreview();
             this._setMessage('');
         });
 
         //Mode buttons
-        this.shadowRoot.querySelectorAll('.mode-btn').forEach(btn =>
+        this.shadowRoot.querySelectorAll('.seg-btn').forEach(btn =>
         {
             btn.addEventListener('click', () => this._setMode(btn.dataset.mode));
         });
 
-        //Volume slider
+        //Volume slider — ha-slider emits 'change' on commit and 'input' while dragging
         const vol = this.shadowRoot.getElementById('vol');
         const volLabel = this.shadowRoot.getElementById('vol-label');
-        vol.addEventListener('input', () =>
+        const updateVolLabel = () =>
         {
-            volLabel.textContent = vol.value + '%';
+            volLabel.textContent = (vol.value !== undefined ? Math.round(vol.value) : 0) + '%';
+        };
+        vol.addEventListener('input', updateVolLabel);
+        vol.addEventListener('change', () =>
+        {
+            updateVolLabel();
+            this._setVolume(Math.round(vol.value));
         });
-        vol.addEventListener('change', () => this._setVolume(parseInt(vol.value, 10)));
+        //Some ha-slider builds emit value-changed instead of change — handle both
+        vol.addEventListener('value-changed', (e) =>
+        {
+            const v = (e.detail && e.detail.value !== undefined) ? e.detail.value : vol.value;
+            volLabel.textContent = Math.round(v) + '%';
+            this._setVolume(Math.round(v));
+        });
 
         //Sound toggle
         this.shadowRoot.getElementById('sound-btn').addEventListener('click', () => this._toggleSound());
@@ -467,15 +394,11 @@ class KSplitFlapCard extends HTMLElement
         const modeState = this._entities.mode ? this._hass.states[this._entities.mode] : null;
         if (modeState)
         {
-            this.shadowRoot.querySelectorAll('.mode-btn').forEach(btn =>
+            this.shadowRoot.querySelectorAll('.seg-btn').forEach(btn =>
             {
                 btn.classList.toggle('active', btn.dataset.mode === modeState.state);
             });
-            const label = this.shadowRoot.getElementById('mode-label');
-            //Prefer the translated/friendly label HA already computed
-            label.textContent = (modeState.attributes && modeState.attributes.friendly_name)
-                ? this._modeLabel(modeState.state)
-                : this._modeLabel(modeState.state);
+            this.shadowRoot.getElementById('mode-label').textContent = this._modeLabel(modeState.state);
         }
 
         //Volume slider — only update if user isn't dragging
@@ -489,20 +412,16 @@ class KSplitFlapCard extends HTMLElement
             volLabel.textContent = pct + '%';
         }
 
-        //Sound toggle reflects the switch entity
+        //Sound toggle + speaker glyph
         const soundState = this._entities.sound ? this._hass.states[this._entities.sound] : null;
         if (soundState)
         {
-            const btn = this.shadowRoot.getElementById('sound-btn');
-            const isOn = soundState.state === 'on';
-            btn.classList.toggle('off', !isOn);
-            btn.title = isOn ? 'Click to mute' : 'Click to unmute';
-            //Swap to a muted-speaker glyph when sound is off
+            const btn  = this.shadowRoot.getElementById('sound-btn');
             const icon = this.shadowRoot.getElementById('sound-icon');
-            icon.setAttribute('d', isOn
-                ? 'M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 7.97v8.05a4.5 4.5 0 0 0 2.5-4.02zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z'
-                : 'M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.96 8.96 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z'
-            );
+            const isOn = soundState.state === 'on';
+            btn.classList.toggle('muted', !isOn);
+            btn.title = isOn ? 'Click to mute' : 'Click to unmute';
+            icon.setAttribute('icon', isOn ? 'mdi:volume-high' : 'mdi:volume-off');
         }
 
         //Message textarea — only update when user isn't typing
@@ -512,53 +431,6 @@ class KSplitFlapCard extends HTMLElement
         {
             msgEl.value = msgState.state || '';
         }
-
-        this._updatePreview();
-    }
-
-    //── Preview pane content ─────────────────────────────────────────────────
-    //Pulls from the local textarea if the user is typing, otherwise from the
-    //message entity state. Empty content falls back to "(no message set)".
-    _updatePreview()
-    {
-        const previewEl = this.shadowRoot.getElementById('preview-text');
-        if (!previewEl) return;
-
-        let text = this._localMessage;
-        if (text === null || text === undefined)
-        {
-            const msgState = this._entities.message ? this._hass.states[this._entities.message] : null;
-            text = msgState ? (msgState.state || '') : '';
-        }
-        text = (text || '').trim();
-
-        if (!text)
-        {
-            previewEl.classList.add('placeholder');
-            previewEl.textContent = 'No custom message set';
-            return;
-        }
-
-        previewEl.classList.remove('placeholder');
-        previewEl.innerHTML = '';
-
-        //Honour the @AUTHOR convention with the same gold colouring the board uses
-        const lines = text.toUpperCase().split(/\r?\n/);
-        lines.forEach((line, i) =>
-        {
-            const span = document.createElement('span');
-            if (line.startsWith('@'))
-            {
-                span.className = 'author';
-                span.textContent = line.substring(1);
-            }
-            else
-            {
-                span.textContent = line;
-            }
-            previewEl.appendChild(span);
-            if (i < lines.length - 1) previewEl.appendChild(document.createElement('br'));
-        });
     }
 
     _modeLabel(state)
@@ -614,7 +486,7 @@ class KSplitFlapCard extends HTMLElement
 
     //── Lovelace card size hint ──────────────────────────────────────────────
 
-    getCardSize() { return 5; }
+    getCardSize() { return 4; }
 
     static getConfigElement()
     {
