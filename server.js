@@ -1,20 +1,23 @@
 /* Solari board backend. Serves the static frontend, persists settings to
-   state.json, exposes a small JSON API (mode / static / quotes / settings)
-   guarded by an API key, and bridges MQTT topics into the same actions so
-   Home Assistant automations can drive the board.
+   state.json, and exposes a small JSON API (mode / static / quotes /
+   settings) guarded by an API key. Home Assistant drives the board through
+   that same HTTP API via the bundled kSplitFlap HACS integration.
    Notes:
    05/21/2026 - Removed the 'dashboard' mode along with the Open-Meteo
                 weather fetch, the WMO_CODES table, the location config,
                 and the matching API/MQTT/HA hooks. The frontend no longer
                 renders a dashboard so none of this code is reachable.
-   05/21/2026 - Reformatted to Allman braces. */
+   05/21/2026 - Reformatted to Allman braces.
+   05/21/2026 - Removed the MQTT bridge and the `mqtt` npm dependency.
+                The HACS integration covers the same automation surface
+                via the HTTP API, and dropping mqtt means one less module
+                to install on the host running this server. */
 
 require('dotenv').config();
 
 const express = require('express');
 const fs      = require('fs');
 const path    = require('path');
-const mqtt    = require('mqtt');
 
 const app        = express();
 const PORT       = process.env.PORT || 3000;
@@ -24,7 +27,7 @@ const STATE_FILE = path.join(__dirname, 'state.json');
 app.use(express.json());
 app.use(express.static(__dirname));
 
-//Modes accepted by both the HTTP API and the MQTT bridge.
+//Modes accepted by the HTTP /api/mode endpoint.
 const VALID_MODES = ['quotes', 'static', 'alternate'];
 
 //─────────────────────────────────────────────
@@ -223,97 +226,6 @@ app.post('/api/settings', auth, (req, res) =>
     saveState(state);
     res.json(state);
 });
-
-//─────────────────────────────────────────────
-//MQTT
-//─────────────────────────────────────────────
-if (process.env.MQTT_HOST)
-{
-    const mqttClient = mqtt.connect(`mqtt://${process.env.MQTT_HOST}:${process.env.MQTT_PORT || 1883}`, {
-        username: process.env.MQTT_USER,
-        password: process.env.MQTT_PASSWORD,
-        reconnectPeriod: 5000
-    });
-
-    mqttClient.on('connect', () =>
-    {
-        console.log(`MQTT connected to ${process.env.MQTT_HOST}:${process.env.MQTT_PORT || 1883}`);
-        mqttClient.subscribe([
-            'solari/mode',
-            'solari/static',
-            'solari/static/clear',
-            'solari/settings',
-            'solari/quotes/add'
-        ]);
-    });
-
-    mqttClient.on('message', (topic, payload) =>
-    {
-        const raw = payload.toString().trim();
-        try
-        {
-            if (topic === 'solari/mode')
-            {
-                const mode = raw.replace(/^"|"$/g, '');
-                if (VALID_MODES.includes(mode))
-                {
-                    state.mode = mode;
-                    saveState(state);
-                    console.log(`MQTT: mode → ${mode}`);
-                }
-            }
-            else if (topic === 'solari/static')
-            {
-                let lines;
-                if (raw.startsWith('{'))
-                {
-                    lines = JSON.parse(raw).lines;
-                }
-                else
-                {
-                    lines = [raw.toUpperCase()];
-                }
-                if (Array.isArray(lines) && lines.length > 0)
-                {
-                    state.staticMessage = { lines };
-                    saveState(state);
-                    console.log('MQTT: static message set');
-                }
-            }
-            else if (topic === 'solari/static/clear')
-            {
-                state.staticMessage = null;
-                saveState(state);
-                console.log('MQTT: static message cleared');
-            }
-            else if (topic === 'solari/settings')
-            {
-                const data = JSON.parse(raw);
-                if (typeof data.volume === 'number') state.volume = Math.max(0, Math.min(1, data.volume));
-                if (typeof data.sound === 'boolean') state.sound = data.sound;
-                saveState(state);
-                console.log('MQTT: settings updated');
-            }
-            else if (topic === 'solari/quotes/add')
-            {
-                const data = JSON.parse(raw);
-                if (Array.isArray(data.lines) && data.lines.length > 0)
-                {
-                    const quote = { id: genId(), lines: data.lines };
-                    state.quotes.push(quote);
-                    saveState(state);
-                    console.log('MQTT: quote added');
-                }
-            }
-        }
-        catch (e)
-        {
-            console.warn(`MQTT: failed to handle message on ${topic}:`, e.message);
-        }
-    });
-
-    mqttClient.on('error', err => console.warn('MQTT error:', err.message));
-}
 
 //─────────────────────────────────────────────
 //Start

@@ -152,78 +152,11 @@ The flip uses CSS `rotateX(-180deg)` with `transform-origin: bottom center` and 
 
 The drum sequence is fixed: `' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;!?\'-'`. To go from any character to any other, the drum advances forward through every intermediate position, wrapping around if needed. This matches how mechanical split-flap displays physically operate.
 
-## Home Assistant / MQTT Integration
+## Home Assistant Integration
 
-The server supports MQTT out of the box, making it easy to control the board from Home Assistant automations.
+Control the board from Home Assistant via the bundled **kSplitFlap** custom integration (HACS-compatible). It exposes the board's mode, custom message, volume, sound, and hold durations as native HA entities and ships a Lovelace card. See [HOME_ASSISTANT.md](HOME_ASSISTANT.md) for installation and usage.
 
-### Requirements
-
-- An MQTT broker (Mosquitto add-on in Home Assistant works great)
-
-### Setup
-
-**1. Add MQTT credentials to your `.env` file:**
-
-```
-MQTT_HOST=192.168.x.x
-MQTT_PORT=1883
-MQTT_USER=your-mqtt-user
-MQTT_PASSWORD=your-mqtt-password
-```
-
-**2. Start the server:**
-
-```bash
-npm start
-```
-
-You should see `MQTT connected to ...` in the logs.
-
-### Topics
-
-| Topic | Payload | What it does |
-|-------|---------|--------------|
-| `solari/mode` | `quotes` \| `static` \| `alternate` | Switch display mode |
-| `solari/static` | Plain text or `{"lines": ["LINE 1", "LINE 2"]}` | Set static message |
-| `solari/static/clear` | anything | Clear static message |
-| `solari/settings` | `{"volume": 0.5, "sound": true}` | Adjust volume/sound |
-| `solari/quotes/add` | `{"lines": ["NEW QUOTE", "@AUTHOR"]}` | Add a quote to the rotation |
-
-Plain text payloads on `solari/static` are automatically uppercased. For multi-line messages use the JSON format.
-
-### Testing from the terminal
-
-```bash
-# Set a static message
-mosquitto_pub -h 192.168.x.x -p 1883 -u youruser -P 'yourpassword' \
-  -t solari/static -m "HELLO FROM HA"
-
-# Switch to quotes mode
-mosquitto_pub -h 192.168.x.x -p 1883 -u youruser -P 'yourpassword' \
-  -t solari/mode -m "quotes"
-```
-
-### Example Home Assistant automation
-
-```yaml
-automation:
-  - alias: "Welcome home"
-    trigger:
-      - platform: state
-        entity_id: person.your_name
-        to: home
-    action:
-      - service: mqtt.publish
-        data:
-          topic: solari/static
-          payload: '{"lines": ["WELCOME HOME"]}'
-      - service: mqtt.publish
-        data:
-          topic: solari/mode
-          payload: static
-```
-
-> **Note:** The board polls the server every 5 seconds, so MQTT changes appear within 5 seconds of publishing.
+> The board polls `GET /api/state` every 5 seconds, so changes made from HA appear within 5 seconds.
 
 ## License
 
