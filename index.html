@@ -280,7 +280,15 @@
                 the chance the Windows driver routes the two pipelines
                 separately. Auto-resume on AudioContext suspend +
                 console telemetry + window.__solari debug handle for
-                live inspection from DevTools. */
+                live inspection from DevTools.
+   05/21/2026 - Meeting-mode mute: playClick() now bails when
+                document.hidden is true, so the board goes silent when
+                someone clicks away to another tab, Ctrl+Tabs, minimises,
+                or locks the screen, and unmutes the instant the tab
+                comes back to the foreground. Keep-alive loops continue
+                running while hidden so WASAPI stays warm for instant
+                clicks on return. visibilitychange handler also relights
+                the HTMLAudio loop on return-to-visible. */
 (function()
 {
     //──────────────────────────────────────────────
@@ -652,6 +660,11 @@
     function playClick()
     {
         if (!soundEnabled || !audioCtx || !SOUND_ON) return;
+        //Meeting-mode: when the tab isn't the foreground tab (other tab focused,
+        //window minimised, screen locked, etc.) silence the click sounds. The
+        //keep-alive loops continue so WASAPI stays warm — only the audible
+        //per-flip clicks are suppressed.
+        if (document.hidden) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
 
         var duration = 0.012;
@@ -682,11 +695,24 @@
     document.addEventListener('click',     function() { initAudio(); }, { once: true });
     document.addEventListener('keydown',   function() { initAudio(); }, { once: true });
     document.addEventListener('mousemove', function() { initAudio(); }, { once: true });
+    //Page Visibility API fires for every way of leaving/returning to the tab —
+    //click-switch, Ctrl+Tab, Ctrl+W to another tab, Alt-Tab away, window
+    //minimise, screen lock, OS sleep. We use it both for the meeting-mode
+    //mute (gated in playClick above) and to relight the keep-alive paths
+    //the moment we come back into focus.
     document.addEventListener('visibilitychange', function()
     {
-        if (!document.hidden && audioCtx && audioCtx.state === 'suspended')
+        console.log('[solari] page', document.hidden ? 'hidden — clicks muted' : 'visible — clicks unmuted');
+        if (!document.hidden)
         {
-            audioCtx.resume();
+            if (audioCtx && audioCtx.state === 'suspended')
+            {
+                audioCtx.resume();
+            }
+            if (keepAliveAudio && keepAliveAudio.paused)
+            {
+                keepAliveAudio.play().catch(function() {});
+            }
         }
     });
 
