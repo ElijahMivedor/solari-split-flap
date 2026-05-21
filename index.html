@@ -270,7 +270,17 @@
                 Windows volume. Replaced with a continuous near-silent
                 Web Audio oscillator (~ -80 dB) routed to
                 audioCtx.destination so non-zero PCM samples are produced
-                on every audio callback. Allman style throughout. */
+                on every audio callback. Allman style throughout.
+   05/21/2026 - Audio keep-alive v2: field testing showed v1's 20 Hz sine
+                at -80 dB was below the audio driver's effective floor
+                (DC-block filter + 16-bit quantization landed it back at
+                silence). Replaced with a -60 dB WHITE NOISE buffer loop
+                so every sample is random and non-zero, and added a
+                parallel HTMLAudioElement-based loop of the same noise on
+                the chance the Windows driver routes the two pipelines
+                separately. Auto-resume on AudioContext suspend +
+                console telemetry + window.__solari debug handle for
+                live inspection from DevTools. */
 (function()
 {
     //──────────────────────────────────────────────
@@ -472,47 +482,117 @@
     //──────────────────────────────────────────────
     var audioCtx        = null;
     var soundEnabled    = false;
-    var keepAliveOsc    = null;
-    var keepAliveGain   = null;
+    var keepAliveSource = null;                  //Web Audio buffer-source loop
+    var keepAliveAudio  = null;                  //parallel HTMLAudioElement loop
     var keepAliveTimer  = null;
 
-    //Windows-only-style fix:
+    //Windows audio cutout fix — v2 (white noise, dual-path, with telemetry).
+    //
     //  Windows shared-mode WASAPI tears down the audio stream once it sees no
     //  audio data flowing. Reinitialising the stream takes ~1 second, during
     //  which any click sounds we try to play are dropped — observed as the
-    //  audio "cutting out" until the user nudges the system volume slider
-    //  (which generates a Windows ping and forces the session back open).
+    //  audio "cutting out" until the user nudges the system volume slider.
     //
-    //  The previous implementation used an HTMLAudioElement playing a 1-second
-    //  silent WAV at volume 0. That fails because the PCM samples are
-    //  literally zero and the element volume is zero, so the browser routes
-    //  no actual audio data to the OS — exactly the condition WASAPI sleeps on.
+    //  v1 used a 20 Hz sine at -80 dB gain through audioCtx.destination. That
+    //  was at the absolute floor of 16-bit precision and may be killed by
+    //  the audio driver's DC-blocking filter or sample quantization, leaving
+    //  effectively zero PCM data at the device. v2 fixes that by:
     //
-    //  Fix: route a continuous, very-low-amplitude sine through
-    //  audioCtx.destination. Gain is ~ -80 dB (0.0001), well below the
-    //  threshold of human hearing, but every audio callback now contains
-    //  non-zero PCM samples. The OS audio driver therefore keeps the session
-    //  warm and click sounds always fire instantly.
+    //    1. Running a looping 1-second buffer of WHITE NOISE through Web
+    //       Audio at gain 0.001 (-60 dB). Random samples have no DC offset
+    //       for filters to remove and amplitude (~33 LSB peak at 16-bit)
+    //       is comfortably above the quantization floor.
+    //    2. Running the SAME noise in parallel through an HTMLAudioElement
+    //       (`<audio loop>` with an in-memory WAV). Windows routes Web Audio
+    //       and HTMLAudioElement through different pipelines under different
+    //       driver/policy modes — feeding both maximises the chance one
+    //       reaches WASAPI in any given config.
+    //    3. Auto-resuming the AudioContext whenever Chromium suspends it
+    //       (onstatechange listener + 60 s heartbeat).
+    //    4. Exposing a `window.__solari` debug handle so the live state of
+    //       both keep-alive paths is inspectable from DevTools without
+    //       another code roundtrip.
     function startKeepAlive()
     {
-        if (!audioCtx || keepAliveOsc) return;
+        if (!audioCtx || keepAliveSource) return;
 
-        keepAliveOsc = audioCtx.createOscillator();
-        keepAliveOsc.type = 'sine';
-        keepAliveOsc.frequency.value = 20;       //lower limit of hearing; with the gain below it's effectively silent
+        //Path 1 — Web Audio buffer-source loop of -60 dB white noise.
+        var sampleRate = audioCtx.sampleRate;
+        var buf = audioCtx.createBuffer(1, sampleRate, sampleRate);   //1 second buffer
+        var data = buf.getChannelData(0);
+        for (var i = 0; i < data.length; i++)
+        {
+            data[i] = (Math.random() * 2 - 1) * 0.001;                //~ -60 dB peak — inaudible, ~33 LSB at 16-bit
+        }
 
-        keepAliveGain = audioCtx.createGain();
-        keepAliveGain.gain.value = 0.0001;       //~ -80 dB — inaudible, but non-zero PCM data
+        keepAliveSource = audioCtx.createBufferSource();
+        keepAliveSource.buffer = buf;
+        keepAliveSource.loop = true;
+        keepAliveSource.connect(audioCtx.destination);
+        keepAliveSource.start();
 
-        keepAliveOsc.connect(keepAliveGain);
-        keepAliveGain.connect(audioCtx.destination);
-        keepAliveOsc.start();
+        //Auto-resume on suspend — Chromium can suspend long-idle contexts even
+        //when the tab is visible. Logging each transition makes regressions
+        //easy to spot in DevTools.
+        audioCtx.onstatechange = function()
+        {
+            console.log('[solari] audioCtx state →', audioCtx.state);
+            if (audioCtx.state === 'suspended')
+            {
+                audioCtx.resume().catch(function(e)
+                {
+                    console.warn('[solari] resume failed:', e);
+                });
+            }
+        };
+
+        //Path 2 — HTMLAudioElement looping a -60 dB white-noise WAV.
+        //Built in memory so we don't ship a sound file.
+        try
+        {
+            var numSamples = sampleRate;                              //1 second
+            var arr = new ArrayBuffer(44 + numSamples * 2);
+            var view = new DataView(arr);
+            function ws(off, s)
+            {
+                for (var i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+            }
+            ws(0,  'RIFF'); view.setUint32(4,  36 + numSamples * 2, true);
+            ws(8,  'WAVE'); ws(12, 'fmt '); view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);                              //PCM
+            view.setUint16(22, 1, true);                              //mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);                              //block align
+            view.setUint16(34, 16, true);                             //bits per sample
+            ws(36, 'data'); view.setUint32(40, numSamples * 2, true);
+            //~33 LSB peak random noise — peak -60 dBFS, inaudible at normal listening levels
+            for (var n = 0; n < numSamples; n++)
+            {
+                view.setInt16(44 + n * 2, Math.floor((Math.random() * 2 - 1) * 33), true);
+            }
+
+            var blob = new Blob([arr], { type: 'audio/wav' });
+            keepAliveAudio = document.createElement('audio');
+            keepAliveAudio.loop = true;
+            keepAliveAudio.volume = 1.0;                              //embedded PCM is already -60 dB, full-pass
+            keepAliveAudio.src = URL.createObjectURL(blob);
+            keepAliveAudio.play().catch(function(e)
+            {
+                console.warn('[solari] HTMLAudio keep-alive failed to start:', e);
+            });
+        }
+        catch (e)
+        {
+            console.warn('[solari] HTMLAudio keep-alive setup failed:', e);
+        }
+
+        console.log('[solari] keep-alive started — AudioContext (' + audioCtx.sampleRate + ' Hz) + HTMLAudioElement');
     }
 
-    //Safety net — once a minute, make sure the context didn't get
-    //auto-suspended by the browser (some Chromium versions do this on
-    //long-idle tabs even when visible). Resuming a non-suspended context
-    //is a no-op, so this is cheap.
+    //Heartbeat backup — once a minute, force-resume the context if Chromium
+    //has suspended it. Resuming a running context is a no-op, so this is
+    //cheap. Also relight the HTMLAudio loop if a stall paused it.
     function startKeepAliveHeartbeat()
     {
         if (keepAliveTimer) return;
@@ -520,7 +600,13 @@
         {
             if (audioCtx && audioCtx.state === 'suspended')
             {
+                console.log('[solari] heartbeat: resuming suspended context');
                 audioCtx.resume();
+            }
+            if (keepAliveAudio && keepAliveAudio.paused)
+            {
+                console.log('[solari] heartbeat: restarting paused HTMLAudio');
+                keepAliveAudio.play().catch(function() {});
             }
         }, 60 * 1000);
     }
@@ -534,11 +620,33 @@
             soundEnabled = true;
             startKeepAlive();
             startKeepAliveHeartbeat();
+            console.log('[solari] audio initialised — ctx state:', audioCtx.state);
         }
         catch (e)
         {
             soundEnabled = false;
+            console.warn('[solari] AudioContext failed to initialise:', e);
         }
+
+        //Debug handle — call __solari.state() in DevTools to inspect live state.
+        window.__solari = {
+            state: function()
+            {
+                return {
+                    audioCtxState:    audioCtx ? audioCtx.state : 'no-context',
+                    sampleRate:       audioCtx ? audioCtx.sampleRate : null,
+                    soundEnabled:     soundEnabled,
+                    soundOn:          SOUND_ON,
+                    volume:           VOLUME,
+                    keepAliveSource:  keepAliveSource ? 'running' : 'not-started',
+                    htmlAudioPaused:  keepAliveAudio ? keepAliveAudio.paused : 'no-element',
+                    htmlAudioVolume:  keepAliveAudio ? keepAliveAudio.volume : null,
+                    pageHidden:       document.hidden,
+                };
+            },
+            resume:    function() { return audioCtx && audioCtx.resume(); },
+            playClick: function() { playClick(); },
+        };
     }
 
     function playClick()
