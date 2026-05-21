@@ -161,11 +161,3 @@ class KSplitFlapCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Delete a quote from the library by ID."""
         await self._delete(f"{API_QUOTES}/{quote_id}")
         await self.async_refresh()
-
-    async def async_set_location(self, name: str, lat: float, lon: float) -> None:
-        """Set the weather location for dashboard mode."""
-        await self._post(
-            API_SETTINGS,
-            {"location": {"name": name.upper(), "lat": lat, "lon": lon}},
-        )
-        await self.async_refresh()

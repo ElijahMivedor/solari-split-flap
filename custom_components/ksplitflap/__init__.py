@@ -1,14 +1,21 @@
-"""The kSplitFlap integration."""
+"""The kSplitFlap integration.
+
+Wires up the config entry, forwards platform setup (select / number /
+switch / text), exposes integration-level services for static-message and
+quote-library management, and registers the bundled Lovelace card as a
+static frontend asset.
+
+Notes:
+    05/21/2026 - Removed the set_location service (dashboard feature gone).
+"""
 from __future__ import annotations
 
 import logging
 import os
-from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady, ServiceNotFound
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
@@ -16,7 +23,6 @@ from .const import (
     SERVICE_ADD_QUOTE,
     SERVICE_CLEAR_STATIC,
     SERVICE_DELETE_QUOTE,
-    SERVICE_SET_LOCATION,
     SERVICE_SET_STATIC,
 )
 from .coordinator import KSplitFlapCoordinator
@@ -47,14 +53,6 @@ ADD_QUOTE_SCHEMA = vol.Schema(
 DELETE_QUOTE_SCHEMA = vol.Schema(
     {
         vol.Required("quote_id"): cv.string,
-    }
-)
-
-SET_LOCATION_SCHEMA = vol.Schema(
-    {
-        vol.Required("name"): cv.string,
-        vol.Required("lat"): vol.Coerce(float),
-        vol.Required("lon"): vol.Coerce(float),
     }
 )
 
@@ -177,22 +175,6 @@ def _register_services(hass: HomeAssistant) -> None:
             schema=DELETE_QUOTE_SCHEMA,
         )
 
-    if not hass.services.has_service(DOMAIN, SERVICE_SET_LOCATION):
-        async def handle_set_location(call: ServiceCall) -> None:
-            coordinator = _get_coordinator(hass)
-            await coordinator.async_set_location(
-                call.data["name"],
-                call.data["lat"],
-                call.data["lon"],
-            )
-
-        hass.services.async_register(
-            DOMAIN,
-            SERVICE_SET_LOCATION,
-            handle_set_location,
-            schema=SET_LOCATION_SCHEMA,
-        )
-
 
 def _unregister_services(hass: HomeAssistant) -> None:
     """Remove all integration services when the last entry is removed."""
@@ -201,7 +183,6 @@ def _unregister_services(hass: HomeAssistant) -> None:
         SERVICE_CLEAR_STATIC,
         SERVICE_ADD_QUOTE,
         SERVICE_DELETE_QUOTE,
-        SERVICE_SET_LOCATION,
     ):
         if hass.services.has_service(DOMAIN, service):
             hass.services.async_remove(DOMAIN, service)

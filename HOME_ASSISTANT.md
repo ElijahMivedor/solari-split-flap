@@ -12,7 +12,7 @@ Control your Solari split-flap display directly from Home Assistant. The **kSpli
 4. [Configuration (Config Flow)](#configuration-config-flow)
 5. [Entities](#entities)
 6. [Services](#services)
-7. [Dashboard Mode](#dashboard-mode)
+7. [Lovelace Card](#lovelace-card)
 8. [Example Automations](#example-automations)
 9. [Configuration.yaml REST Commands (non-HACS)](#configurationyaml-rest-commands-non-hacs)
 10. [Troubleshooting](#troubleshooting)
@@ -79,10 +79,13 @@ If you prefer not to use HACS:
            ├── select.py
            ├── number.py
            ├── switch.py
+           ├── text.py
            ├── services.yaml
            ├── strings.json
-           └── translations/
-               └── en.json
+           ├── translations/
+           │   └── en.json
+           └── www/
+               └── ksplitflap-card.js
    ```
 3. Restart Home Assistant.
 4. Proceed to [Configuration](#configuration-config-flow).
@@ -125,12 +128,13 @@ All entities are grouped under a single **kSplitFlap** device (manufacturer: Kin
 | Options     | `quotes`, `static`, `alternate`      |
 | Writable    | Yes — changes call `POST /api/mode`  |
 
-Controls how the board cycles content:
+Controls how the board cycles content. The dropdown shows friendly names; the underlying option values are unchanged so existing automations keep working:
 
-- **quotes** — rotates through the quote library automatically
-- **static** — displays the saved static message indefinitely
-- **alternate** — alternates between the static message and the quote library
-- **dashboard** — shows live date, time, and weather (see [Dashboard Mode](#dashboard-mode))
+| Option value | Friendly name        | Behaviour                                          |
+|--------------|----------------------|----------------------------------------------------|
+| `quotes`     | Inspirational Quotes | Rotates through the quote library automatically   |
+| `static`     | Custom Message Only  | Shows only the saved custom message               |
+| `alternate`  | Both                 | Alternates between the custom message and quotes  |
 
 ---
 
@@ -170,7 +174,7 @@ Enables or disables the flip sound effect entirely. When off, the board animates
 | Unit        | seconds                                                       |
 | Writable    | Yes — stores as milliseconds via `POST /api/settings`         |
 
-How long each quote is displayed before the board flips to the next one (in **quotes** and **alternate** modes).
+How long each quote is displayed before the board flips to the next one (in **Inspirational Quotes** and **Both** modes).
 
 ---
 
@@ -184,7 +188,7 @@ How long each quote is displayed before the board flips to the next one (in **qu
 | Unit        | seconds                                                              |
 | Writable    | Yes — stores as milliseconds via `POST /api/settings`                |
 
-In **alternate** mode: how long a quote from the library is held before switching to the static message.
+In **Both** mode: how long a quote from the library is held before switching to the custom message.
 
 ---
 
@@ -198,7 +202,7 @@ In **alternate** mode: how long a quote from the library is held before switchin
 | Unit        | seconds                                                              |
 | Writable    | Yes — stores as milliseconds via `POST /api/settings`                |
 
-In **alternate** mode: how long the static message is held before switching back to a quote.
+In **Both** mode: how long the custom message is held before switching back to a quote.
 
 ---
 
@@ -277,88 +281,17 @@ data:
 
 ---
 
-### `ksplitflap.set_location`
+## Lovelace Card
 
-Set the geographic location used for weather data in dashboard mode. Triggers an immediate weather refresh on the server.
-
-| Field | Type   | Required | Description                                     |
-|-------|--------|----------|-------------------------------------------------|
-| name  | string | Yes      | Display name shown on the board (e.g. AUSTIN, TX). |
-| lat   | float  | Yes      | Latitude coordinate (-90 to 90).               |
-| lon   | float  | Yes      | Longitude coordinate (-180 to 180).            |
+The integration ships a bundled Lovelace card (`ksplitflap-card`) that wraps the mode picker, custom-message editor, sound toggle, and volume slider into a single tile. The card auto-discovers the kSplitFlap entities on the dashboard; you can also pin them explicitly with the keys below.
 
 ```yaml
-service: ksplitflap.set_location
-data:
-  name: "NEW YORK, NY"
-  lat: 40.7128
-  lon: -74.0060
-```
-
----
-
-## Dashboard Mode
-
-Dashboard mode turns the board into a live information display. When active, the board shows:
-
-- **Row 1:** Current date in `DATE  DD/MM/YYYY` format (CST timezone)
-- **Row 2:** Current time in `TIME  HH:MM:SS` format (CST timezone, updates every second)
-- **Row 4:** Location name (e.g. `AUSTIN, TX`)
-- **Row 5:** Weather condition (e.g. `PARTLY CLOUDY`)
-- **Row 6:** Temperature and wind speed (e.g. `72F  WIND 8 MPH`)
-
-Weather data is fetched from [Open-Meteo](https://open-meteo.com/) — a free, no-API-key weather service — every 10 minutes. Temperature is in Fahrenheit and wind speed in mph.
-
-Time updates every second using direct single-flip animation (not the full drum cycle), so only cells that have changed characters are animated. Weather rows update automatically whenever the server fetches new data.
-
-The default location is Austin, TX. Change it with the `ksplitflap.set_location` service or by posting to `POST /api/settings` with a `location` object.
-
-### Switching to dashboard mode
-
-```yaml
-service: select.select_option
-target:
-  entity_id: select.kineticboard_mode
-data:
-  option: dashboard
-```
-
-### Automation: Switch to dashboard at night
-
-```yaml
-alias: kSplitFlap Dashboard at Night
-trigger:
-  - platform: time
-    at: "20:00:00"
-action:
-  - service: select.select_option
-    target:
-      entity_id: select.kineticboard_mode
-    data:
-      option: dashboard
-
----
-
-alias: kSplitFlap Quotes in Morning
-trigger:
-  - platform: time
-    at: "08:00:00"
-action:
-  - service: select.select_option
-    target:
-      entity_id: select.kineticboard_mode
-    data:
-      option: quotes
-```
-
-### Setting the location
-
-```yaml
-service: ksplitflap.set_location
-data:
-  name: "CHICAGO, IL"
-  lat: 41.8781
-  lon: -87.6298
+type: custom:ksplitflap-card
+# all keys optional — only set them if auto-discovery picks the wrong entity
+mode_entity: select.kineticboard_mode
+volume_entity: number.kineticboard_volume
+sound_entity: switch.kineticboard_sound
+message_entity: text.kineticboard_static_message
 ```
 
 ---
@@ -456,7 +389,7 @@ action:
 
 ### Show Weather Conditions on the Board
 
-Displays the current outside temperature as a static message when it is unusually hot or cold.
+Displays the current outside temperature as a static message when it is unusually hot.
 
 ```yaml
 alias: kSplitFlap Weather Alert

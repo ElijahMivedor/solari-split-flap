@@ -30,10 +30,9 @@
       "mode": {
         "name": "Mode",
         "state": {
-          "quotes": "Quotes",
-          "static": "Static",
-          "alternate": "Alternate",
-          "dashboard": "Dashboard"
+          "quotes": "Inspirational Quotes",
+          "static": "Custom Message Only",
+          "alternate": "Both"
         }
       }
     },
@@ -92,24 +91,6 @@
         "quote_id": {
           "name": "Quote ID",
           "description": "The unique ID of the quote to delete."
-        }
-      }
-    },
-    "set_location": {
-      "name": "Set Location",
-      "description": "Set the location used for weather data in dashboard mode.",
-      "fields": {
-        "name": {
-          "name": "Display Name",
-          "description": "Location name shown on the board (e.g. AUSTIN, TX)."
-        },
-        "lat": {
-          "name": "Latitude",
-          "description": "Latitude coordinate."
-        },
-        "lon": {
-          "name": "Longitude",
-          "description": "Longitude coordinate."
         }
       }
     }
