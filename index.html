@@ -493,6 +493,7 @@
     var keepAliveSource = null;                  //Web Audio buffer-source loop
     var keepAliveAudio  = null;                  //parallel HTMLAudioElement loop
     var keepAliveTimer  = null;
+    var hiddenSince     = null;                  //timestamp of last tab-hide, for recreation threshold
 
     //Windows audio cutout fix — v2 (white noise, dual-path, with telemetry).
     //
@@ -619,6 +620,46 @@
         }, 60 * 1000);
     }
 
+    //Tear down and rebuild the AudioContext, forcing a fresh WASAPI session.
+    //Chrome's audio process can silently lose its WASAPI handle while
+    //audioCtx.state still reports "running" — the only observable symptom is
+    //that sounds stop reaching the hardware until the user nudges Windows
+    //volume (which triggers WASAPI to reinitialise). Closing and reopening the
+    //context is the only reliable way to force that reinitialisation from JS.
+    function recreateAudioContext()
+    {
+        if (!soundEnabled) return;
+        console.log('[solari] recreating AudioContext — forcing fresh WASAPI session');
+
+        if (keepAliveSource)
+        {
+            try { keepAliveSource.stop(); } catch (e) {}
+            keepAliveSource = null;
+        }
+        if (keepAliveAudio)
+        {
+            keepAliveAudio.pause();
+            keepAliveAudio = null;
+        }
+        if (audioCtx)
+        {
+            audioCtx.close().catch(function() {});
+            audioCtx = null;
+        }
+
+        try
+        {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            startKeepAlive();
+            console.log('[solari] AudioContext recreated — state:', audioCtx.state);
+        }
+        catch (e)
+        {
+            soundEnabled = false;
+            console.warn('[solari] AudioContext recreation failed:', e);
+        }
+    }
+
     function initAudio()
     {
         if (audioCtx) return;
@@ -628,6 +669,9 @@
             soundEnabled = true;
             startKeepAlive();
             startKeepAliveHeartbeat();
+            //Proactively recreate the AudioContext every 3 minutes so WASAPI
+            //never has a chance to tear down the session on its own schedule.
+            setInterval(recreateAudioContext, 3 * 60 * 1000);
             console.log('[solari] audio initialised — ctx state:', audioCtx.state);
         }
         catch (e)
@@ -653,6 +697,7 @@
                 };
             },
             resume:    function() { return audioCtx && audioCtx.resume(); },
+            recreate:  function() { recreateAudioContext(); },
             playClick: function() { playClick(); },
         };
     }
@@ -665,31 +710,45 @@
         //keep-alive loops continue so WASAPI stays warm — only the audible
         //per-flip clicks are suppressed.
         if (document.hidden) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
 
-        var duration = 0.012;
-        var now = audioCtx.currentTime;
-        var bufferSize = Math.ceil(audioCtx.sampleRate * duration);
-        var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        var data = buffer.getChannelData(0);
-        for (var i = 0; i < bufferSize; i++)
+        var fire = function()
         {
-            data[i] = (Math.random() * 2 - 1) * 0.3;
+            var duration = 0.012;
+            var now = audioCtx.currentTime;
+            var bufferSize = Math.ceil(audioCtx.sampleRate * duration);
+            var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < bufferSize; i++)
+            {
+                data[i] = (Math.random() * 2 - 1) * 0.3;
+            }
+            var source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            var filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 3000 + Math.random() * 1000;
+            filter.Q.value = 1.5;
+            var gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(VOLUME + Math.random() * 0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            source.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            source.start(now);
+            source.stop(now + duration);
+        };
+
+        //resume() is async — only read currentTime and schedule audio after the
+        //context is actually running, otherwise currentTime is stale/frozen and
+        //both start/stop land in the past, silently dropping the click.
+        if (audioCtx.state === 'suspended')
+        {
+            audioCtx.resume().then(fire);
         }
-        var source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        var filter = audioCtx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 3000 + Math.random() * 1000;
-        filter.Q.value = 1.5;
-        var gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(VOLUME + Math.random() * 0.06, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-        source.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
-        source.start(now);
-        source.stop(now + duration);
+        else
+        {
+            fire();
+        }
     }
 
     document.addEventListener('click',     function() { initAudio(); }, { once: true });
@@ -702,16 +761,28 @@
     //the moment we come back into focus.
     document.addEventListener('visibilitychange', function()
     {
-        console.log('[solari] page', document.hidden ? 'hidden — clicks muted' : 'visible — clicks unmuted');
-        if (!document.hidden)
+        if (document.hidden)
         {
-            if (audioCtx && audioCtx.state === 'suspended')
+            hiddenSince = Date.now();
+            console.log('[solari] page hidden — clicks muted');
+        }
+        else
+        {
+            var awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
+            hiddenSince = null;
+            console.log('[solari] page visible — clicks unmuted (away', Math.round(awayMs / 1000), 's)');
+
+            //After 30+ seconds away the WASAPI session may have been torn down;
+            //recreate the AudioContext for a guaranteed fresh pipeline rather
+            //than hoping resume() is enough.
+            if (awayMs > 30000)
             {
-                audioCtx.resume();
+                recreateAudioContext();
             }
-            if (keepAliveAudio && keepAliveAudio.paused)
+            else
             {
-                keepAliveAudio.play().catch(function() {});
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(function() {});
             }
         }
     });
