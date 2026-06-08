@@ -494,6 +494,7 @@
     var keepAliveAudio  = null;                  //parallel HTMLAudioElement loop
     var keepAliveTimer  = null;
     var hiddenSince     = null;                  //timestamp of last tab-hide, for recreation threshold
+    var clackBuffer     = null;                  //decoded AudioBuffer for clack.mp3
 
     //Windows audio cutout fix — v2 (white noise, dual-path, with telemetry).
     //
@@ -669,6 +670,7 @@
             soundEnabled = true;
             startKeepAlive();
             startKeepAliveHeartbeat();
+            loadClackBuffer();
             //Proactively recreate the AudioContext every 3 minutes so WASAPI
             //never has a chance to tear down the session on its own schedule.
             setInterval(recreateAudioContext, 3 * 60 * 1000);
@@ -699,6 +701,7 @@
             resume:    function() { return audioCtx && audioCtx.resume(); },
             recreate:  function() { recreateAudioContext(); },
             playClick: function() { playClick(); },
+            playClack: function() { playClack(); },
         };
     }
 
@@ -741,6 +744,63 @@
         //resume() is async — only read currentTime and schedule audio after the
         //context is actually running, otherwise currentTime is stale/frozen and
         //both start/stop land in the past, silently dropping the click.
+        if (audioCtx.state === 'suspended')
+        {
+            audioCtx.resume().then(fire);
+        }
+        else
+        {
+            fire();
+        }
+    }
+
+    function loadClackBuffer()
+    {
+        if (!audioCtx) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'audio/clack.mp3', true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = function()
+        {
+            if (xhr.status !== 200)
+            {
+                console.warn('[solari] clack.mp3 load failed: HTTP', xhr.status);
+                return;
+            }
+            audioCtx.decodeAudioData(xhr.response,
+                function(buf)
+                {
+                    clackBuffer = buf;
+                    console.log('[solari] clack.mp3 loaded — duration:', buf.duration.toFixed(3) + 's');
+                },
+                function(e) { console.warn('[solari] clack.mp3 decode failed:', e); }
+            );
+        };
+        xhr.onerror = function() { console.warn('[solari] clack.mp3 XHR network error'); };
+        xhr.send();
+    }
+
+    function playClack()
+    {
+        if (!soundEnabled || !audioCtx || !SOUND_ON) return;
+        if (document.hidden) return;
+
+        var fire = function()
+        {
+            if (!clackBuffer) return;
+            var now = audioCtx.currentTime;
+            var duration = 0.254;
+            var source = audioCtx.createBufferSource();
+            source.buffer = clackBuffer;
+            var gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(VOLUME + Math.random() * 0.96, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            source.connect(gain);
+            gain.connect(audioCtx.destination);
+            source.start();
+            source.stop(now + duration);
+        };
+
         if (audioCtx.state === 'suspended')
         {
             audioCtx.resume().then(fire);
@@ -848,7 +908,8 @@
 
         void flip.offsetWidth;
         flip.classList.add('flipping');
-        playClick();
+        //playClick(); //using generated noise
+        playClack(); //using clack audio file
 
         var tid = setTimeout(function()
         {
