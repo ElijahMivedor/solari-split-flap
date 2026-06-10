@@ -628,6 +628,18 @@
         try
         {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            //testing
+            audioCtx = new AudioContext({ sampleRate: 48000 });
+
+            if (!audioCtx.createGain)
+            audioCtx.createGain = audioCtx.createGainNode;
+            if (!audioCtx.createDelay)
+            audioCtx.createDelay = audioCtx.createDelayNode;
+            if (!audioCtx.createScriptProcessor)
+            audioCtx.createScriptProcessor = audioCtx.createJavaScriptNode;
+            //
+
             soundEnabled = true;
             audioPromptElement = document.getElementById("audioPrompt");
             startKeepAlive();
