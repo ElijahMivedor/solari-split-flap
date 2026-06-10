@@ -495,6 +495,7 @@
     var keepAliveTimer  = null;
     var hiddenSince     = null;                  //timestamp of last tab-hide, for recreation threshold
     var audioPromptElement = null;
+    var audioSample;
 
     //Windows audio cutout fix — v2 (white noise, dual-path, with telemetry).
     //
@@ -621,46 +622,6 @@
         }, 60 * 1000);
     }
 
-    //Tear down and rebuild the AudioContext, forcing a fresh WASAPI session.
-    //Chrome's audio process can silently lose its WASAPI handle while
-    //audioCtx.state still reports "running" — the only observable symptom is
-    //that sounds stop reaching the hardware until the user nudges Windows
-    //volume (which triggers WASAPI to reinitialise). Closing and reopening the
-    //context is the only reliable way to force that reinitialisation from JS.
-    function recreateAudioContext()
-    {
-        if (!soundEnabled) return;
-        console.log('[solari] recreating AudioContext — forcing fresh WASAPI session');
-
-        if (keepAliveSource)
-        {
-            try { keepAliveSource.stop(); } catch (e) {}
-            keepAliveSource = null;
-        }
-        if (keepAliveAudio)
-        {
-            keepAliveAudio.pause();
-            keepAliveAudio = null;
-        }
-        if (audioCtx)
-        {
-            audioCtx.close().catch(function() {});
-            audioCtx = null;
-        }
-
-        try
-        {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            startKeepAlive();
-            console.log('[solari] AudioContext recreated — state:', audioCtx.state);
-        }
-        catch (e)
-        {
-            soundEnabled = false;
-            console.warn('[solari] AudioContext recreation failed:', e);
-        }
-    }
-
     function initAudio()
     {
         if (audioCtx) return;
@@ -671,9 +632,11 @@
             audioPromptElement = document.getElementById("audioPrompt");
             startKeepAlive();
             startKeepAliveHeartbeat();
-            //Proactively recreate the AudioContext every 3 minutes so WASAPI
-            //never has a chance to tear down the session on its own schedule.
-            setInterval(recreateAudioContext, 3 * 60 * 1000);
+            //restart background audio loop every 10 seconds - testing methods to force audio to be recognized
+            audioSample = new VolumeSample();
+            setInterval( () => {
+                audioSample.toggle();
+            }, 5 * 1000);
             console.log('[solari] audio initialised — ctx state:', audioCtx.state);
         }
         catch (e)
@@ -699,11 +662,76 @@
                 };
             },
             resume:    function() { return audioCtx && audioCtx.resume(); },
-            recreate:  function() { recreateAudioContext(); },
             playClick: function() { playClick(); },
             playClack: function() { playClack(); },
         };
     }
+
+
+    function loadSounds(obj, soundMap, callback) {
+        var serverBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        var names = Object.keys(soundMap);
+        var remaining = names.length;
+        if (remaining === 0) { if (callback) callback(); return; }
+        names.forEach(function(name) {
+            var rawPath = soundMap[name];
+            var url = serverBase + (rawPath.startsWith('./') ? rawPath.slice(1) : '/' + rawPath);
+            var request = new XMLHttpRequest();
+            request.open('GET', url, true);
+            request.responseType = 'arraybuffer';
+            request.onload = function() {
+                audioCtx.decodeAudioData(request.response, function(buffer) {
+                    obj[name] = buffer;
+                    if (--remaining === 0 && callback) callback();
+                }, function(err) {
+                    console.error('[solari] decodeAudioData error for "' + name + '":', err);
+                });
+            };
+            request.onerror = function() {
+                console.error('[solari] XHR error loading sound: ' + url);
+            };
+            request.send();
+        });
+    }
+
+    // using code from https://webaudioapi.com/samples/volume/volume-sample.js to test forcing api on by toggling on/off audio elements (it has an apache license so its fine)
+
+
+    function VolumeSample() {
+        loadSounds(this, {
+            buffer: './audio/clack.mp3'
+        }, onLoaded);
+        function onLoaded() {
+        };
+        this.isPlaying = false;
+    };
+
+    VolumeSample.prototype.play = function() {
+        this.gainNode = audioCtx.createGain();
+        this.source = audioCtx.createBufferSource();
+        this.source.buffer = this.buffer;
+
+        this.gainNode.gain.value = 0.01;
+
+        // Connect source to a gain node
+        this.source.connect(this.gainNode);
+        // Connect gain node to destination
+        this.gainNode.connect(audioCtx.destination);
+        // Start playback in a loop
+        this.source.loop = true;
+        this.source[this.source.start ? 'start' : 'noteOn'](0);
+    };
+
+    VolumeSample.prototype.stop = function() {
+        this.source[this.source.stop ? 'stop' : 'noteOff'](0);
+    };
+
+    VolumeSample.prototype.toggle = function() {
+        this.isPlaying ? this.stop() : this.play();
+        this.isPlaying = !this.isPlaying;
+    };
+
+    //
 
     function playClick()
     {
@@ -785,18 +813,10 @@
             hiddenSince = null;
             console.log('[solari] page visible — clicks unmuted (away', Math.round(awayMs / 1000), 's)');
 
-            //After 30+ seconds away the WASAPI session may have been torn down;
-            //recreate the AudioContext for a guaranteed fresh pipeline rather
-            //than hoping resume() is enough.
-            if (awayMs > 30000)
-            {
-                recreateAudioContext();
-            }
-            else
-            {
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-                if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(function() {});
-            }
+
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(function() {});
+            
         }
     });
 
@@ -862,7 +882,7 @@
         void flip.offsetWidth;
         flip.classList.add('flipping');
         playClick(); //using generated noise
-        playClack(); //imperceptiple audio cute
+        //playClack(); //imperceptible audio cue
 
         var tid = setTimeout(function()
         {
