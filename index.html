@@ -495,6 +495,8 @@
     var keepAliveTimer  = null;
     var hiddenSince     = null;                  //timestamp of last tab-hide, for recreation threshold
     var audioPromptElement = null;
+    var audioPausedByVisibility = false;         //true while we intentionally suspended the context on tab-hide
+    var tabFocused = document.hasFocus();        //false when user is on another tab; reliable even during tab capture
     var audioSample;
 
     //Windows audio cutout fix — v2 (white noise, dual-path, with telemetry).
@@ -548,7 +550,7 @@
         audioCtx.onstatechange = function()
         {
             console.log('[solari] audioCtx state →', audioCtx.state);
-            if (audioCtx.state === 'suspended')
+            if (audioCtx.state === 'suspended' && !audioPausedByVisibility)
             {
                 audioCtx.resume().catch(function(e)
                 {
@@ -609,6 +611,7 @@
         if (keepAliveTimer) return;
         keepAliveTimer = setInterval(function()
         {
+            if (audioPausedByVisibility) return;
             if (audioCtx && audioCtx.state === 'suspended')
             {
                 console.log('[solari] heartbeat: resuming suspended context');
@@ -629,26 +632,10 @@
         {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-            //testing
-            audioCtx = new AudioContext({ sampleRate: 48000 });
-
-            if (!audioCtx.createGain)
-            audioCtx.createGain = audioCtx.createGainNode;
-            if (!audioCtx.createDelay)
-            audioCtx.createDelay = audioCtx.createDelayNode;
-            if (!audioCtx.createScriptProcessor)
-            audioCtx.createScriptProcessor = audioCtx.createJavaScriptNode;
-            //
-
             soundEnabled = true;
-            audioPromptElement = document.getElementById("audioPrompt");
-            startKeepAlive();
+            //startKeepAlive();
             startKeepAliveHeartbeat();
             //restart background audio loop every 10 seconds - testing methods to force audio to be recognized
-            audioSample = new VolumeSample();
-            setInterval( () => {
-                audioSample.toggle();
-            }, 5 * 1000);
             console.log('[solari] audio initialised — ctx state:', audioCtx.state);
         }
         catch (e)
@@ -675,75 +662,9 @@
             },
             resume:    function() { return audioCtx && audioCtx.resume(); },
             playClick: function() { playClick(); },
-            playClack: function() { playClack(); },
         };
     }
 
-
-    function loadSounds(obj, soundMap, callback) {
-        var serverBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
-        var names = Object.keys(soundMap);
-        var remaining = names.length;
-        if (remaining === 0) { if (callback) callback(); return; }
-        names.forEach(function(name) {
-            var rawPath = soundMap[name];
-            var url = serverBase + (rawPath.startsWith('./') ? rawPath.slice(1) : '/' + rawPath);
-            var request = new XMLHttpRequest();
-            request.open('GET', url, true);
-            request.responseType = 'arraybuffer';
-            request.onload = function() {
-                audioCtx.decodeAudioData(request.response, function(buffer) {
-                    obj[name] = buffer;
-                    if (--remaining === 0 && callback) callback();
-                }, function(err) {
-                    console.error('[solari] decodeAudioData error for "' + name + '":', err);
-                });
-            };
-            request.onerror = function() {
-                console.error('[solari] XHR error loading sound: ' + url);
-            };
-            request.send();
-        });
-    }
-
-    // using code from https://webaudioapi.com/samples/volume/volume-sample.js to test forcing api on by toggling on/off audio elements (it has an apache license so its fine)
-
-
-    function VolumeSample() {
-        loadSounds(this, {
-            buffer: './audio/clack.mp3'
-        }, onLoaded);
-        function onLoaded() {
-        };
-        this.isPlaying = false;
-    };
-
-    VolumeSample.prototype.play = function() {
-        this.gainNode = audioCtx.createGain();
-        this.source = audioCtx.createBufferSource();
-        this.source.buffer = this.buffer;
-
-        this.gainNode.gain.value = 0.01;
-
-        // Connect source to a gain node
-        this.source.connect(this.gainNode);
-        // Connect gain node to destination
-        this.gainNode.connect(audioCtx.destination);
-        // Start playback in a loop
-        this.source.loop = true;
-        this.source[this.source.start ? 'start' : 'noteOn'](0);
-    };
-
-    VolumeSample.prototype.stop = function() {
-        this.source[this.source.stop ? 'stop' : 'noteOff'](0);
-    };
-
-    VolumeSample.prototype.toggle = function() {
-        this.isPlaying ? this.stop() : this.play();
-        this.isPlaying = !this.isPlaying;
-    };
-
-    //
 
     function playClick()
     {
@@ -752,7 +673,7 @@
         //window minimised, screen locked, etc.) silence the click sounds. The
         //keep-alive loops continue so WASAPI stays warm — only the audible
         //per-flip clicks are suppressed.
-        if (document.hidden) return;
+        if (!tabFocused) return;
 
         var fire = function()
         {
@@ -763,7 +684,7 @@
             var data = buffer.getChannelData(0);
             for (var i = 0; i < bufferSize; i++)
             {
-                data[i] = (Math.random() * 2 - 1) * 0.3;
+                data[i] = (Math.random() * 2 - 1) * 3;
             }
             var source = audioCtx.createBufferSource();
             source.buffer = buffer;
@@ -772,7 +693,7 @@
             filter.frequency.value = 3000 + Math.random() * 1000;
             filter.Q.value = 1.5;
             var gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(VOLUME + Math.random() * 0.06, now);
+            gain.gain.setValueAtTime(VOLUME * 3 + Math.random() * .5, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
             source.connect(filter);
             filter.connect(gain);
@@ -795,58 +716,50 @@
     }
 
 
-
-    function playClack()
-    {
-        if (!SOUND_ON) return;
-        if (document.hidden) return;
-        audioPromptElement.volume = 0.01
-        audioPromptElement.play();
-    }
-
     document.addEventListener('click',     function() { initAudio(); }, { once: true });
     document.addEventListener('keydown',   function() { initAudio(); }, { once: true });
     document.addEventListener('mousemove', function() { initAudio(); }, { once: true });
 
-    document.addEventListener('keydown', function(e) {
-        if (e.key !== '\\') return;
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 440;
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.8);
-        osc.onended = function() { ctx.close(); };
-    });
-    //Page Visibility API fires for every way of leaving/returning to the tab —
-    //click-switch, Ctrl+Tab, Ctrl+W to another tab, Alt-Tab away, window
-    //minimise, screen lock, OS sleep. We use it both for the meeting-mode
-    //mute (gated in playClick above) and to relight the keep-alive paths
-    //the moment we come back into focus.
+    //suspendAudio / resumeAudio — shared by both blur and visibilitychange so
+    //whichever fires first wins and the other is a no-op.
+    function suspendAudio()
+    {
+        tabFocused = false;
+        hiddenSince = hiddenSince || Date.now();
+        console.log('[solari] tab unfocused — clicks muted');
+        if (audioCtx && audioCtx.state === 'running')
+        {
+            audioPausedByVisibility = true;
+            audioCtx.suspend().catch(function() {});
+        }
+        if (keepAliveAudio) keepAliveAudio.pause();
+    }
+
+    function resumeAudio()
+    {
+        tabFocused = true;
+        var awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
+        hiddenSince = null;
+        console.log('[solari] tab focused — clicks unmuted (away', Math.round(awayMs / 1000), 's)');
+        if (audioPausedByVisibility)
+        {
+            audioPausedByVisibility = false;
+            if (audioCtx) audioCtx.resume().catch(function() {});
+        }
+        if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(function() {});
+    }
+
+    //visibilitychange covers minimize / screen-lock / OS sleep.
+    //window blur/focus covers tab-switching when the tab is being captured by
+    //an extension (Chrome keeps visibilityState = 'visible' during capture).
     document.addEventListener('visibilitychange', function()
     {
-        if (document.hidden)
-        {
-            hiddenSince = Date.now();
-            console.log('[solari] page hidden — clicks muted');
-        }
-        else
-        {
-            var awayMs = hiddenSince ? Date.now() - hiddenSince : 0;
-            hiddenSince = null;
-            console.log('[solari] page visible — clicks unmuted (away', Math.round(awayMs / 1000), 's)');
-
-
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(function() {});
-            
-        }
+        if (document.hidden) suspendAudio();
+        else resumeAudio();
     });
+
+    window.addEventListener('blur',  suspendAudio);
+    window.addEventListener('focus', resumeAudio);
 
     //VBML character codes → drum tokens
     var VBML_CODES = {};
@@ -910,7 +823,6 @@
         void flip.offsetWidth;
         flip.classList.add('flipping');
         playClick(); //using generated noise
-        //playClack(); //imperceptible audio cue
 
         var tid = setTimeout(function()
         {
