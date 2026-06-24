@@ -20,7 +20,6 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      cursor: none;
       background: var(--sf-body-bg);
     }
 
@@ -244,12 +243,53 @@
       100% { transform: rotateX(-180deg); }
     }
 
+    /* ── Cursor auto-hide ────────────────────────────────────────────── */
+    html.cursor-hidden,
+    html.cursor-hidden * { cursor: none !important; }
+
+    /* ── Mute button ─────────────────────────────────────────────────── */
+    #mute-btn {
+      position: absolute;
+      top: 0px;
+      right: 5px;
+      width: 40px;
+      height: 40px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      transition: opacity 0.4s ease, background 0.15s ease;
+      z-index: 9999;
+      padding: 0;
+      color: white;
+    }
+    html.cursor-hidden #mute-btn {
+      opacity: 0;
+      pointer-events: none;
+    }
+
   </style>
 </head>
 <body>
 
 <div id="stage">
-  <div class="split-flap-board" id="board"></div>
+  <div class="split-flap-board" id="board">
+    <button id="mute-btn" aria-label="Mute sound">
+  <svg id="icon-sound-on" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+  </svg>
+  <svg id="icon-sound-off" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+    <line x1="23" y1="9" x2="17" y2="15"/>
+    <line x1="17" y1="9" x2="23" y2="15"/>
+  </svg>
+</button>
+  </div>
 </div>
 
 <script>
@@ -684,7 +724,7 @@
             var data = buffer.getChannelData(0);
             for (var i = 0; i < bufferSize; i++)
             {
-                data[i] = (Math.random() * 2 - 1) * 3;
+                data[i] = (Math.random() * 2 - 1) * 1;
             }
             var source = audioCtx.createBufferSource();
             source.buffer = buffer;
@@ -693,7 +733,7 @@
             filter.frequency.value = 3000 + Math.random() * 1000;
             filter.Q.value = 1.5;
             var gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(VOLUME * 3 + Math.random() * .5, now);
+            gain.gain.setValueAtTime(VOLUME * 1 + Math.random() * .5, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
             source.connect(filter);
             filter.connect(gain);
@@ -1173,6 +1213,40 @@
         .catch(startCycle);
 
     setTimeout(startCycle, 1500);
+
+    //──────────────────────────────────────────────
+    //Cursor auto-hide after 3 s of inactivity
+    //──────────────────────────────────────────────
+    var cursorTimer = null;
+
+    function showCursor()
+    {
+        document.documentElement.classList.remove('cursor-hidden');
+        clearTimeout(cursorTimer);
+        cursorTimer = setTimeout(function()
+        {
+            document.documentElement.classList.add('cursor-hidden');
+        }, 3000);
+    }
+
+    document.addEventListener('mousemove', showCursor);
+    showCursor();
+
+    //──────────────────────────────────────────────
+    //Mute button
+    //──────────────────────────────────────────────
+    var muteBtn  = document.getElementById('mute-btn');
+    var iconOn   = document.getElementById('icon-sound-on');
+    var iconOff  = document.getElementById('icon-sound-off');
+
+    muteBtn.addEventListener('click', function()
+    {
+        SOUND_ON = !SOUND_ON;
+        iconOn.style.display  = SOUND_ON ? '' : 'none';
+        iconOff.style.display = SOUND_ON ? 'none' : '';
+        muteBtn.setAttribute('aria-label', SOUND_ON ? 'Mute sound' : 'Unmute sound');
+    });
+
 })();
 </script>
 
