@@ -194,6 +194,15 @@ app.delete('/api/quotes/:id', auth, (req, res) =>
     res.json({ ok: true });
 });
 
+//Sound toggle from the browser UI — no API key required (same-origin, local only)
+app.post('/api/ui/sound', (req, res) =>
+{
+    const { sound } = req.body;
+    if (sound !== undefined) state.sound = !!sound;
+    saveState(state);
+    res.json(state);
+});
+
 //Settings — volume, sound, holdMs
 app.post('/api/settings', auth, (req, res) =>
 {

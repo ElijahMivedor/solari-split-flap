@@ -1174,6 +1174,17 @@
     //──────────────────────────────────────────────
     //State polling — syncs with server every 5s
     //──────────────────────────────────────────────
+    function updateMuteBtn()
+    {
+        var on  = document.getElementById('icon-sound-on');
+        var off = document.getElementById('icon-sound-off');
+        var btn = document.getElementById('mute-btn');
+        if (!btn) return;
+        on.style.display  = SOUND_ON ? '' : 'none';
+        off.style.display = SOUND_ON ? 'none' : '';
+        btn.setAttribute('aria-label', SOUND_ON ? 'Mute sound' : 'Unmute sound');
+    }
+
     function applyState(s)
     {
         BOARD_MODE    = s.mode   || 'quotes';
@@ -1186,6 +1197,7 @@
             activeQuotes = s.quotes;
             shuffledDeck = [];
         }
+        updateMuteBtn();
     }
 
     function pollState()
@@ -1235,16 +1247,15 @@
     //──────────────────────────────────────────────
     //Mute button
     //──────────────────────────────────────────────
-    var muteBtn  = document.getElementById('mute-btn');
-    var iconOn   = document.getElementById('icon-sound-on');
-    var iconOff  = document.getElementById('icon-sound-off');
-
-    muteBtn.addEventListener('click', function()
+    document.getElementById('mute-btn').addEventListener('click', function()
     {
         SOUND_ON = !SOUND_ON;
-        iconOn.style.display  = SOUND_ON ? '' : 'none';
-        iconOff.style.display = SOUND_ON ? 'none' : '';
-        muteBtn.setAttribute('aria-label', SOUND_ON ? 'Mute sound' : 'Unmute sound');
+        updateMuteBtn();
+        fetch('/api/ui/sound', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sound: SOUND_ON })
+        }).catch(function() {});
     });
 
 })();
