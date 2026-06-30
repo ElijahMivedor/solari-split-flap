@@ -210,7 +210,7 @@ var DEFAULT_QUOTES = [
 // ──────────────────────────────────────────────
 // Drum — fixed character sequence
 // ──────────────────────────────────────────────
-var DRUM = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;!?\'-';
+var DRUM = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;!?\'-/&()"#%+=*$@';
 var DRUM_INDEX = {};
 for (var di = 0; di < DRUM.length; di++) DRUM_INDEX[DRUM[di]] = di;
 
@@ -500,6 +500,13 @@ SolariBoard.prototype._drumToChar = function(index, targetChar, baseDelay) {
   }
 
   if (steps.length === 0) return 0;
+
+  if (steps.length > 10) {
+    var sparse = [];
+    for (var si = 1; si < steps.length - 1; si += 2) sparse.push(steps[si]);
+    sparse.push(steps[steps.length - 1]);
+    steps = sparse;
+  }
 
   var minGap = 35;
   var maxGap = 160;

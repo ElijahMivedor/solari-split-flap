@@ -328,7 +328,9 @@
                 comes back to the foreground. Keep-alive loops continue
                 running while hidden so WASAPI stays warm for instant
                 clicks on return. visibilitychange handler also relights
-                the HTMLAudio loop on return-to-visible. */
+                the HTMLAudio loop on return-to-visible. 
+    06/30/26  - Added special characters to the drum to allow the flap to display them.
+                */
 (function()
 {
     //──────────────────────────────────────────────
@@ -353,6 +355,7 @@
     //Quotes — each entry is an array of lines.
     //Lines prefixed with @ are author names (yellow).
     //──────────────────────────────────────────────
+    
     var quotes = [
       ['THE BEST WAY TO',
        'PREDICT THE FUTURE',
@@ -475,7 +478,7 @@
        '',
        '@MARSHALL MCLUHAN'],
     ];
-
+    
     //──────────────────────────────────────────────
     //Build DOM — one nested div tree per cell
     //──────────────────────────────────────────────
@@ -811,7 +814,8 @@
         ' ','A','B','C','D','E','F','G','H','I','J','K','L','M',
         'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
         '0','1','2','3','4','5','6','7','8','9',
-        '.',',',':',';','!','?',"'",'-','/'
+        '.',',',':',';','!','?',"'",'-','/', '\'', '\\',
+        '&','(',')','"','#','%','+','=','*','$','@'
     ];
 
     var drumIndex = {};
@@ -895,6 +899,14 @@
         }
 
         if (steps.length === 0) return 0;
+
+        if (steps.length > 10)
+        {
+            var sparse = [];
+            for (var si = 1; si < steps.length - 1; si += 2) sparse.push(steps[si]);
+            sparse.push(steps[steps.length - 1]);
+            steps = sparse;
+        }
 
         var minGap = 35;
         var maxGap = 160;
