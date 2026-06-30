@@ -287,7 +287,7 @@ class KSplitFlapCard extends HTMLElement
                 }
             </style>
 
-            <ha-card>
+<ha-card>
                 <div class="header">
                     <div class="header-left">
                         <ha-icon class="header-icon" icon="mdi:tray-full"></ha-icon>
@@ -308,17 +308,6 @@ class KSplitFlapCard extends HTMLElement
                 </div>
 
                 <div class="section">
-                    <div class="label">Volume</div>
-                    <div class="volume-row">
-                        <ha-icon-button class="sound-btn" id="sound-btn" title="Toggle sound">
-                            <ha-icon id="sound-icon" icon="mdi:volume-high"></ha-icon>
-                        </ha-icon-button>
-                        <ha-slider id="vol" min="0" max="100" step="1" pin></ha-slider>
-                        <span class="volume-value" id="vol-label">--</span>
-                    </div>
-                </div>
-
-                <div class="section">
                     <div class="label-row">
                         <div class="label" style="margin: 0">Custom Message</div>
                         <button class="clear-btn" id="clear-btn">Clear</button>
@@ -327,6 +316,17 @@ class KSplitFlapCard extends HTMLElement
                         class="message-input"
                         id="msg"
                         placeholder="Type a message — wraps to 20 chars per line"></textarea>
+                </div>
+
+                <div class="section">
+                    <div class="label">Volume</div>
+                    <div class="volume-row">
+                        <ha-icon-button class="sound-btn" id="sound-btn" title="Toggle sound">
+                            <ha-icon id="sound-icon" icon="mdi:volume-high"></ha-icon>
+                        </ha-icon-button>
+                        <ha-slider id="vol" min="0" max="100" step="1" pin></ha-slider>
+                        <span class="volume-value" id="vol-label">--</span>
+                    </div>
                 </div>
             </ha-card>
         `;
